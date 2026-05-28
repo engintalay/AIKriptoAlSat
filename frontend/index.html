@@ -160,12 +160,54 @@
                     <div class="workspace-column chart-col">
                         <div class="card-header">
                             <h3><i class="fa-solid fa-chart-candlestick"></i> Teknik Grafik</h3>
-                            <div class="chart-timeframes">
-                                <button class="btn-timeframe" data-tf="15m">15d</button>
-                                <button class="btn-timeframe active" data-tf="1h">1s</button>
-                                <button class="btn-timeframe" data-tf="4h">4s</button>
-                                <button class="btn-timeframe" data-tf="1d">1g</button>
+                            <div class="chart-controls">
+                                <div class="indicator-toggles">
+                                    <button class="btn-indicator" data-ind="bollinger" title="Bollinger Bandı">BB</button>
+                                    <button class="btn-indicator" data-ind="supertrend" title="SuperTrend">ST</button>
+                                    <button class="btn-indicator" data-ind="ichimoku" title="Ichimoku Cloud">ICH</button>
+                                    <button class="btn-indicator-settings" id="btn-ind-settings" title="İndikatör Ayarları"><i class="fa-solid fa-sliders"></i></button>
+                                </div>
+                                <div class="chart-timeframes">
+                                    <button class="btn-timeframe" data-tf="15m">15d</button>
+                                    <button class="btn-timeframe active" data-tf="1h">1s</button>
+                                    <button class="btn-timeframe" data-tf="4h">4s</button>
+                                    <button class="btn-timeframe" data-tf="1d">1g</button>
+                                </div>
                             </div>
+                        </div>
+                        <!-- İndikatör Ayarları Popover -->
+                        <div id="indicator-settings-panel" class="ind-settings-panel hidden">
+                            <h4>İndikatör Ayarları</h4>
+                            <div class="ind-setting-group">
+                                <label>Bollinger Bandı</label>
+                                <div class="ind-setting-row">
+                                    <span>Periyot:</span>
+                                    <input type="number" id="ind-bb-period" value="20" min="5" max="100">
+                                    <span>Std:</span>
+                                    <input type="number" id="ind-bb-std" value="2" min="1" max="4" step="0.5">
+                                </div>
+                            </div>
+                            <div class="ind-setting-group">
+                                <label>SuperTrend</label>
+                                <div class="ind-setting-row">
+                                    <span>Periyot:</span>
+                                    <input type="number" id="ind-st-period" value="10" min="5" max="50">
+                                    <span>Çarpan:</span>
+                                    <input type="number" id="ind-st-mult" value="3" min="1" max="6" step="0.5">
+                                </div>
+                            </div>
+                            <div class="ind-setting-group">
+                                <label>Ichimoku</label>
+                                <div class="ind-setting-row">
+                                    <span>Tenkan:</span>
+                                    <input type="number" id="ind-ich-tenkan" value="9" min="5" max="30">
+                                    <span>Kijun:</span>
+                                    <input type="number" id="ind-ich-kijun" value="26" min="10" max="60">
+                                    <span>Senkou:</span>
+                                    <input type="number" id="ind-ich-senkou" value="52" min="20" max="120">
+                                </div>
+                            </div>
+                            <button id="btn-ind-apply" class="btn-ind-apply">Uygula</button>
                         </div>
                         <div class="chart-wrapper">
                             <div id="tradingview-chart-container"></div>
@@ -417,6 +459,6 @@
     </div>
 
     <!-- Main Application Script Controller -->
-    <script src="/static/index.js"></script>
+    <script src="/static/index.js?v=3"></script>
 </body>
 </html>

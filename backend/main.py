@@ -178,42 +178,99 @@ async def refresh_coin(symbol: str):
 
 # 3. Coin Mum Verisi (Grafik için)
 @app.get("/api/coin/{symbol}/candles")
-async def get_coin_candles(symbol: str, interval: str = "1h", limit: int = 100):
+async def get_coin_candles(symbol: str, interval: str = "1h", limit: int = 100, indicators: str = "",
+                           bb_period: int = 20, bb_std: float = 2, st_period: int = 10, st_mult: float = 3,
+                           ich_tenkan: int = 9, ich_kijun: int = 26, ich_senkou: int = 52):
     """
     Belirli bir coine ait mum (OHLCV) verilerini döner.
-    TradingView Lightweight Charts çizimi için kullanılır.
+    indicators: virgülle ayrılmış indikatör listesi (bollinger,supertrend,ichimoku)
     """
     df = data_fetcher.fetch_ohlcv(symbol, interval=interval, limit=limit)
     if df is None:
         raise HTTPException(status_code=404, detail=f"{symbol} mum verisi bulunamadı.")
-        
-    # JSON formatına uygun listeye çevir (timestamp saniye cinsinden olmalı)
+    
+    active_indicators = [i.strip() for i in indicators.split(",") if i.strip()]
+    
+    # İndikatör hesaplamaları
+    ind_data = {}
+    
+    if "bollinger" in active_indicators:
+        sma = df["close"].rolling(bb_period).mean()
+        std = df["close"].rolling(bb_period).std()
+        ind_data["bb_mid"] = sma.tolist()
+        ind_data["bb_upper"] = (sma + bb_std * std).tolist()
+        ind_data["bb_lower"] = (sma - bb_std * std).tolist()
+    
+    if "supertrend" in active_indicators:
+        # SuperTrend
+        hl2 = (df["high"] + df["low"]) / 2
+        atr = df["high"].combine(df["close"].shift(1), max) - df["low"].combine(df["close"].shift(1), min)
+        atr = atr.rolling(st_period).mean()
+        upper_band = hl2 + st_mult * atr
+        lower_band = hl2 - st_mult * atr
+        supertrend = [None] * len(df)
+        direction = [1] * len(df)
+        for i in range(1, len(df)):
+            if df["close"].iloc[i] > upper_band.iloc[i-1]:
+                direction[i] = 1
+            elif df["close"].iloc[i] < lower_band.iloc[i-1]:
+                direction[i] = -1
+            else:
+                direction[i] = direction[i-1]
+            supertrend[i] = lower_band.iloc[i] if direction[i] == 1 else upper_band.iloc[i]
+        ind_data["supertrend"] = supertrend
+        ind_data["supertrend_dir"] = direction
+    
+    if "ichimoku" in active_indicators:
+        high_t = df["high"].rolling(ich_tenkan).max()
+        low_t = df["low"].rolling(ich_tenkan).min()
+        high_k = df["high"].rolling(ich_kijun).max()
+        low_k = df["low"].rolling(ich_kijun).min()
+        tenkan = ((high_t + low_t) / 2).tolist()
+        kijun = ((high_k + low_k) / 2).tolist()
+        senkou_a = [((tenkan[i] + kijun[i]) / 2) if tenkan[i] and kijun[i] else None for i in range(len(tenkan))]
+        high_s = df["high"].rolling(ich_senkou).max()
+        low_s = df["low"].rolling(ich_senkou).min()
+        senkou_b = ((high_s + low_s) / 2).tolist()
+        ind_data["ichimoku_tenkan"] = tenkan
+        ind_data["ichimoku_kijun"] = kijun
+        ind_data["ichimoku_senkou_a"] = senkou_a
+        ind_data["ichimoku_senkou_b"] = senkou_b
+
+    # JSON formatına uygun listeye çevir
     candles = []
-    for _, row in df.iterrows():
-        candles.append({
+    for idx, row in df.iterrows():
+        c = {
             "time": int(row["timestamp"].timestamp()),
             "open": row["open"],
             "high": row["high"],
             "low": row["low"],
             "close": row["close"],
             "volume": row["volume"]
-        })
-    return candles
+        }
+        candles.append(c)
+    
+    # NaN'leri None'a çevir
+    import math
+    for key in ind_data:
+        ind_data[key] = [None if v is None or (isinstance(v, float) and math.isnan(v)) else v for v in ind_data[key]]
+    
+    return {"candles": candles, "indicators": ind_data}
 
 # 3. AI Al-Sat Strateji Raporu
 @app.get("/api/coin/{symbol}/report")
-async def get_coin_report(symbol: str):
+async def get_coin_report(symbol: str, refresh: bool = False):
     """
     Belirli bir coine ait derinlemesine AI analiz raporunu döner.
     Önce veritabanı önbelleğine bakar, yoksa veya eskidiyse (1 saat) yenisini üretir.
     """
-    # 1. Önbelleğe bak
-    cached_report = get_ai_report(symbol)
-    if cached_report:
-        created_time = datetime.fromisoformat(cached_report["created_at"])
-        # Önbellek 1 saat geçerlidir
-        if datetime.now() - created_time < timedelta(hours=1):
-            return cached_report["report"]
+    # 1. Önbelleğe bak (refresh=true ise atla)
+    if not refresh:
+        cached_report = get_ai_report(symbol)
+        if cached_report:
+            created_time = datetime.fromisoformat(cached_report["created_at"])
+            if datetime.now() - created_time < timedelta(hours=1):
+                return cached_report["report"]
             
     # 2. Önbellekte yoksa veya eskidiyse güncel analiz ve fiyatları çek
     coins = get_scanned_coins()

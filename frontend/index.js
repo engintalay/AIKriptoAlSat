@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let chart = null;
     let candleSeries = null;
     let volumeSeries = null;
+    let indicatorSeries = []; // Aktif indikatör serileri
+    let activeIndicators = new Set();
 
     // DOM Elementleri
     const scannerTableBody = document.getElementById("scanner-table-body");
@@ -389,27 +391,80 @@ document.addEventListener("DOMContentLoaded", () => {
     // 4. TRADINGVIEW GRAFİĞİNE MUM VERİLERİNİ ÇİZME
     // ==========================================================================
     async function loadChartData() {
-        if (!selectedCoin) return;
+        if (!selectedCoin || !chart) return;
         
         chartLoader.classList.remove("hidden");
         
         try {
-            const res = await fetch(`/api/coin/${selectedCoin}/candles?interval=${selectedTimeframe}`);
+            const indParam = Array.from(activeIndicators).join(",");
+            const bbPeriod = document.getElementById("ind-bb-period")?.value || 20;
+            const bbStd = document.getElementById("ind-bb-std")?.value || 2;
+            const stPeriod = document.getElementById("ind-st-period")?.value || 10;
+            const stMult = document.getElementById("ind-st-mult")?.value || 3;
+            const ichTenkan = document.getElementById("ind-ich-tenkan")?.value || 9;
+            const ichKijun = document.getElementById("ind-ich-kijun")?.value || 26;
+            const ichSenkou = document.getElementById("ind-ich-senkou")?.value || 52;
+            const res = await fetch(`/api/coin/${selectedCoin}/candles?interval=${selectedTimeframe}&indicators=${indParam}&bb_period=${bbPeriod}&bb_std=${bbStd}&st_period=${stPeriod}&st_mult=${stMult}&ich_tenkan=${ichTenkan}&ich_kijun=${ichKijun}&ich_senkou=${ichSenkou}`);
             const data = await res.json();
             
-            if (data && data.length > 0) {
-                // Mumları yükle
-                candleSeries.setData(data);
+            const candles = data.candles || data;
+            const indicators = data.indicators || {};
+            
+            if (candles && candles.length > 0) {
+                candleSeries.setData(candles);
                 
-                // Hacimleri yükle
-                const volumes = data.map(item => ({
+                const volumes = candles.map(item => ({
                     time: item.time,
                     value: item.volume,
                     color: item.close >= item.open ? 'rgba(0, 230, 118, 0.3)' : 'rgba(255, 61, 0, 0.3)'
                 }));
                 volumeSeries.setData(volumes);
                 
-                // Görünümü otomatik sığdır
+                // Eski indikatör serilerini kaldır
+                indicatorSeries.forEach(s => { try { chart.removeSeries(s); } catch(e) {} });
+                indicatorSeries = [];
+                
+                const times = candles.map(c => c.time);
+                
+                // Bollinger Bandı
+                if (indicators.bb_upper) {
+                    const bbUpper = chart.addLineSeries({ color: '#2979ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    const bbMid = chart.addLineSeries({ color: '#ffab00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    const bbLower = chart.addLineSeries({ color: '#2979ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    bbUpper.setData(times.map((t, i) => indicators.bb_upper[i] != null ? {time: t, value: indicators.bb_upper[i]} : null).filter(Boolean));
+                    bbMid.setData(times.map((t, i) => indicators.bb_mid[i] != null ? {time: t, value: indicators.bb_mid[i]} : null).filter(Boolean));
+                    bbLower.setData(times.map((t, i) => indicators.bb_lower[i] != null ? {time: t, value: indicators.bb_lower[i]} : null).filter(Boolean));
+                    indicatorSeries.push(bbUpper, bbMid, bbLower);
+                }
+                
+                // SuperTrend
+                if (indicators.supertrend) {
+                    const stUp = chart.addLineSeries({ color: '#00e676', lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+                    const stDown = chart.addLineSeries({ color: '#ff3d00', lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+                    const upData = [], downData = [];
+                    times.forEach((t, i) => {
+                        if (indicators.supertrend[i] == null) return;
+                        if (indicators.supertrend_dir[i] === 1) upData.push({time: t, value: indicators.supertrend[i]});
+                        else downData.push({time: t, value: indicators.supertrend[i]});
+                    });
+                    stUp.setData(upData);
+                    stDown.setData(downData);
+                    indicatorSeries.push(stUp, stDown);
+                }
+                
+                // Ichimoku
+                if (indicators.ichimoku_tenkan) {
+                    const tenkan = chart.addLineSeries({ color: '#2979ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    const kijun = chart.addLineSeries({ color: '#ff3d00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    const senkouA = chart.addLineSeries({ color: 'rgba(0,230,118,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    const senkouB = chart.addLineSeries({ color: 'rgba(255,61,0,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+                    tenkan.setData(times.map((t, i) => indicators.ichimoku_tenkan[i] != null ? {time: t, value: indicators.ichimoku_tenkan[i]} : null).filter(Boolean));
+                    kijun.setData(times.map((t, i) => indicators.ichimoku_kijun[i] != null ? {time: t, value: indicators.ichimoku_kijun[i]} : null).filter(Boolean));
+                    senkouA.setData(times.map((t, i) => indicators.ichimoku_senkou_a[i] != null ? {time: t, value: indicators.ichimoku_senkou_a[i]} : null).filter(Boolean));
+                    senkouB.setData(times.map((t, i) => indicators.ichimoku_senkou_b[i] != null ? {time: t, value: indicators.ichimoku_senkou_b[i]} : null).filter(Boolean));
+                    indicatorSeries.push(tenkan, kijun, senkouA, senkouB);
+                }
+                
                 chart.timeScale().fitContent();
             }
         } catch (err) {
@@ -432,6 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const url = `/api/coin/${selectedCoin}/report${forceRefresh ? '?refresh=true' : ''}`;
             const res = await fetch(url);
             const report = await res.json();
+            console.log("[DEBUG] AI Rapor:", report);
             
             // Strateji Kartını Doldur
             reportDirection.innerText = report.direction;
@@ -764,6 +820,27 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedTimeframe = btn.dataset.tf;
             loadChartData();
         });
+    });
+
+    // İndikatör toggle butonları
+    document.querySelectorAll(".btn-indicator").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const ind = btn.dataset.ind;
+            btn.classList.toggle("active");
+            if (activeIndicators.has(ind)) activeIndicators.delete(ind);
+            else activeIndicators.add(ind);
+            loadChartData();
+        });
+    });
+
+    // İndikatör ayarları paneli
+    const indSettingsPanel = document.getElementById("indicator-settings-panel");
+    document.getElementById("btn-ind-settings").addEventListener("click", () => {
+        indSettingsPanel.classList.toggle("hidden");
+    });
+    document.getElementById("btn-ind-apply").addEventListener("click", () => {
+        indSettingsPanel.classList.add("hidden");
+        loadChartData();
     });
 
     // Canlı Tara Butonu
