@@ -4,13 +4,15 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
+import asyncio
 import uvicorn
 from datetime import datetime, timedelta
 
 from backend.database import (
     init_db, save_scanned_coins, get_scanned_coins,
     save_signal, get_signals, save_ai_report, get_ai_report,
-    save_chat_message, get_chat_history, toggle_favorite, get_favorites
+    save_chat_message, get_chat_history, toggle_favorite, get_favorites,
+    get_pending_signals, update_signal_status
 )
 import backend.config as config
 import backend.data_fetcher as data_fetcher
@@ -36,10 +38,10 @@ app.add_middleware(
 
 # Startup DB init
 @app.on_event("startup")
-def startup_event():
+async def on_startup():
     init_db()
-    # İlk çalıştırmada arka planda ufak bir tarama yaparak önbelleği doldurabiliriz
     print("Veritabanı başlatıldı. Sistem hazır.")
+    asyncio.create_task(background_scanner())
 
 # --- API BAZLI SINIFLAR (Pydantic) ---
 class ChatMessageRequest(BaseModel):
@@ -59,9 +61,117 @@ class SettingsUpdateRequest(BaseModel):
     kucoin_api_passphrase: str = ""
     kucoin_rate_limit: int = 60
 
+# --- ARKA PLAN ZAMANLAYICI ---
+
+async def background_scanner():
+    """Sunucu çalıştığı sürece periyodik tarama yapar."""
+    while True:
+        interval = int(config.get_setting("SCAN_INTERVAL_MINUTES", 15))
+        await asyncio.sleep(interval * 60)
+        try:
+            print(f"[BG] Arka plan taraması başlatılıyor...")
+            await run_scan()
+            print(f"[BG] Arka plan taraması tamamlandı. Sonraki: {interval} dk sonra.")
+        except Exception as e:
+            print(f"[BG] Arka plan tarama hatası: {e}")
+
 # --- API UÇ NOKTALARI (API ENDPOINTS) ---
 
+def check_pending_signals(scanned_results):
+    """Açık sinyallerin TP/SL durumunu kontrol eder."""
+    pending = get_pending_signals()
+    if not pending:
+        return
+    
+    # Tarama sonuçlarından fiyat haritası oluştur
+    prices = {c["symbol"]: c["price"] for c in scanned_results}
+    
+    for sig in pending:
+        symbol = sig["symbol"]
+        current_price = prices.get(symbol)
+        if not current_price:
+            continue
+        
+        is_buy = sig["type"] == "BUY"
+        
+        if is_buy:
+            if current_price <= sig["stop_loss"]:
+                update_signal_status(sig["id"], "SL_HIT")
+                print(f"[SIGNAL] {symbol} SL vurdu: {current_price:.4f} <= {sig['stop_loss']:.4f}")
+            elif current_price >= sig["take_profit_2"]:
+                update_signal_status(sig["id"], "TP2_HIT")
+                print(f"[SIGNAL] {symbol} TP2 vurdu: {current_price:.4f} >= {sig['take_profit_2']:.4f}")
+            elif current_price >= sig["take_profit_1"]:
+                update_signal_status(sig["id"], "TP1_HIT")
+                print(f"[SIGNAL] {symbol} TP1 vurdu: {current_price:.4f} >= {sig['take_profit_1']:.4f}")
+        else:  # SELL
+            if current_price >= sig["stop_loss"]:
+                update_signal_status(sig["id"], "SL_HIT")
+                print(f"[SIGNAL] {symbol} SL vurdu: {current_price:.4f} >= {sig['stop_loss']:.4f}")
+            elif current_price <= sig["take_profit_2"]:
+                update_signal_status(sig["id"], "TP2_HIT")
+                print(f"[SIGNAL] {symbol} TP2 vurdu: {current_price:.4f} <= {sig['take_profit_2']:.4f}")
+            elif current_price <= sig["take_profit_1"]:
+                update_signal_status(sig["id"], "TP1_HIT")
+                print(f"[SIGNAL] {symbol} TP1 vurdu: {current_price:.4f} <= {sig['take_profit_1']:.4f}")
+
 # 1. Kripto Tarayıcı Tetikleme ve Listeleme
+
+async def run_scan():
+    """Tarama mantığı — hem endpoint hem background task tarafından kullanılır."""
+    exchange = config.get_setting('EXCHANGE', 'Binance').upper()
+    print(f"Yeni tarama işlemi başlatılıyor ({exchange} API'den canlı çekim)...")
+    limit = int(config.get_setting("TOP_COINS_LIMIT", 50))
+    print(f"[DEBUG] Tarama limiti: {limit}")
+    top_pairs = data_fetcher.fetch_top_usdt_pairs(limit=limit)
+    print(f"[DEBUG] Toplam {len(top_pairs)} coin çekildi")
+    
+    if not top_pairs:
+        return None
+    
+    scanned_results = []
+    for i, pair in enumerate(top_pairs):
+        symbol = pair["symbol"]
+        print(f"[DEBUG] ({i+1}/{len(top_pairs)}) {symbol} için OHLCV çekiliyor...")
+        df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
+        
+        if df is not None:
+            analysis = analyzer.analyze_coin_status(df, pair)
+            scanned_results.append(analysis)
+            
+            if analysis["signal"] in ["STRONG BUY", "STRONG SELL"]:
+                recent_signals = get_signals(limit=10)
+                already_exists = any(
+                    s["symbol"] == symbol and s["type"] == ("BUY" if "BUY" in analysis["signal"] else "SELL")
+                    for s in recent_signals
+                )
+                if not already_exists:
+                    entry = analysis["price"]
+                    is_buy = "BUY" in analysis["signal"]
+                    sl = entry * 0.97 if is_buy else entry * 1.03
+                    tp1 = entry * 1.03 if is_buy else entry * 0.97
+                    tp2 = entry * 1.07 if is_buy else entry * 0.93
+                    save_signal(symbol, "BUY" if is_buy else "SELL", entry, sl, tp1, tp2)
+        else:
+            print(f"[DEBUG] {symbol} için mum verisi çekilemedi, basit verilerle ekleniyor")
+            scanned_results.append({
+                "symbol": symbol,
+                "price": pair["price"],
+                "volume": pair["volume"],
+                "change_24h": pair["change_24h"],
+                "rsi": 50.0,
+                "macd_val": 0.0,
+                "macd_sig": 0.0,
+                "signal": "HOLD",
+                "ai_score": 50,
+                "details": {"reasons": ["Saatlik mum verisi çekilemedi."]}
+            })
+
+    print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
+    save_scanned_coins(scanned_results)
+    check_pending_signals(scanned_results)
+    return scanned_results
+
 @app.get("/api/scan")
 async def scan_market(force: bool = False):
     """
@@ -77,9 +187,7 @@ async def scan_market(force: bool = False):
         if last_updated_str:
             try:
                 last_updated = datetime.fromisoformat(last_updated_str)
-                # 2 dakikadan az süre geçmişse önbelleği dön
                 if datetime.now() - last_updated < timedelta(minutes=2):
-                    # Favori durumlarını ekle
                     favs = get_favorites()
                     for c in cached_coins:
                         c["is_favorite"] = c["symbol"] in favs
@@ -87,70 +195,14 @@ async def scan_market(force: bool = False):
             except Exception:
                 pass
 
-    print(f"Yeni tarama işlemi başlatılıyor ({config.get_setting('EXCHANGE', 'Binance').upper()} API'den canlı çekim)...")
-    limit = int(config.get_setting("TOP_COINS_LIMIT", 50))
-    print(f"[DEBUG] Tarama limiti: {limit}")
-    top_pairs = data_fetcher.fetch_top_usdt_pairs(limit=limit)
-    print(f"[DEBUG] Toplam {len(top_pairs)} coin çekildi")
+    result = await run_scan()
     
-    if not top_pairs:
-        # Eğer internet kesik veya hata varsa önbelleği dön
+    if result is None:
         favs = get_favorites()
         for c in cached_coins:
             c["is_favorite"] = c["symbol"] in favs
         return {"status": "error_fallback_cached", "coins": cached_coins, "exchange": config.get_setting("EXCHANGE", "binance")}
-        
-    scanned_results = []
     
-    # Hızlı tarama: Her coin için 1 saatlik mum verilerini çek ve analiz et
-    for i, pair in enumerate(top_pairs):
-        symbol = pair["symbol"]
-        print(f"[DEBUG] ({i+1}/{len(top_pairs)}) {symbol} için OHLCV çekiliyor...")
-        # Teknik analiz için 100 saatlik mum verisi yeterlidir
-        df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
-        
-        if df is not None:
-            analysis = analyzer.analyze_coin_status(df, pair)
-            scanned_results.append(analysis)
-            
-            # Eğer STRONG BUY veya STRONG SELL üretildiyse ve bu sinyal
-            # son 6 saatte zaten üretilmediyse sinyaller tablosuna da kaydet (Backtest için)
-            if analysis["signal"] in ["STRONG BUY", "STRONG SELL"]:
-                recent_signals = get_signals(limit=10)
-                already_exists = any(
-                    s["symbol"] == symbol and s["type"] == ("BUY" if "BUY" in analysis["signal"] else "SELL")
-                    for s in recent_signals
-                )
-                if not already_exists:
-                    # Sinyali kaydet
-                    # Stop ve TP'leri yapay zekasız da basit hesaplayıp backteste ekleyebiliriz
-                    entry = analysis["price"]
-                    is_buy = "BUY" in analysis["signal"]
-                    sl = entry * 0.97 if is_buy else entry * 1.03
-                    tp1 = entry * 1.03 if is_buy else entry * 0.97
-                    tp2 = entry * 1.07 if is_buy else entry * 0.93
-                    save_signal(symbol, "BUY" if is_buy else "SELL", entry, sl, tp1, tp2)
-        else:
-            print(f"[DEBUG] {symbol} için mum verisi çekilemedi, basit verilerle ekleniyor")
-            # Mum verisi çekilemediyse basit verilerle ekle
-            scanned_results.append({
-                "symbol": symbol,
-                "price": pair["price"],
-                "volume": pair["volume"],
-                "change_24h": pair["change_24h"],
-                "rsi": 50.0,
-                "macd_val": 0.0,
-                "macd_sig": 0.0,
-                "signal": "HOLD",
-                "ai_score": 50,
-                "details": {"reasons": ["Saatlik mum verisi çekilemedi."]}
-            })
-
-    print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
-    # Veritabanına kaydet
-    save_scanned_coins(scanned_results)
-    
-    # Güncel favorileri alıp işaretle
     favs = get_favorites()
     final_coins = get_scanned_coins()
     for c in final_coins:

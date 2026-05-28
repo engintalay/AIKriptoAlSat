@@ -139,6 +139,15 @@ def get_signals(limit=20):
     conn.close()
     return [dict(row) for row in rows]
 
+def get_pending_signals():
+    """Henüz sonuçlanmamış (PENDING) sinyalleri döner."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM signals WHERE status='PENDING'")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
 def update_signal_status(signal_id, status):
     """Sinyal durumunu günceller (örn: TP1 vurdu)."""
     conn = get_db_connection()

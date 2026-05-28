@@ -629,10 +629,16 @@ document.addEventListener("DOMContentLoaded", () => {
             
             // Başarı Oranını Hesapla (TP vurulma oranı)
             const closedSigs = signals.filter(s => s.status !== "PENDING");
+            const totalSigs = signals.length;
+            const pendingSigs = signals.filter(s => s.status === "PENDING").length;
+            const wins = closedSigs.filter(s => s.status.includes("TP")).length;
+            const losses = closedSigs.filter(s => s.status === "SL_HIT").length;
+            
             if (closedSigs.length > 0) {
-                const wins = closedSigs.filter(s => s.status.includes("TP")).length;
                 const winRate = (wins / closedSigs.length) * 100;
-                document.getElementById("val-win-rate").innerText = `${winRate.toFixed(1)}%`;
+                document.getElementById("val-win-rate").innerText = `${winRate.toFixed(1)}% (${wins}W/${losses}L)`;
+            } else {
+                document.getElementById("val-win-rate").innerText = `${pendingSigs} beklemede`;
             }
             
             backtestCardsContainer.innerHTML = "";
