@@ -57,3 +57,14 @@ def update_setting(key, value):
     os.environ[key] = str(value)
     load_all_env()
     return True
+
+# Exchange ayarları için helper fonksiyonlar
+def get_exchange_settings():
+    """Tüm exchange ayarlarını döner."""
+    return {
+        "exchange": get_setting("EXCHANGE", "binance"),
+        "kucoin_api_key": get_setting("KUCOIN_API_KEY", ""),
+        "kucoin_api_secret": get_setting("KUCOIN_API_SECRET", ""),
+        "kucoin_api_passphrase": get_setting("KUCOIN_API_PASSPHRASE", ""),
+        "kucoin_rate_limit": int(get_setting("KUCOIN_RATE_LIMIT", "60"))
+    }

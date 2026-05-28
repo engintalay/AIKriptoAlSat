@@ -93,12 +93,13 @@
                             <th class="text-right">RSI</th>
                             <th class="text-center">AI Skoru</th>
                             <th class="text-center">Sinyal</th>
+                            <th class="text-right">Güncelleme</th>
                         </tr>
                     </thead>
                     <tbody id="scanner-table-body">
                         <!-- JS dinamik olarak dolduracak -->
                         <tr>
-                            <td colspan="7" class="table-loader">
+                            <td colspan="8" class="table-loader">
                                 <i class="fa-solid fa-circle-notch fa-spin"></i> Piyasa verileri yükleniyor...
                             </td>
                         </tr>
@@ -336,6 +337,53 @@
                         <label for="input-llamacpp-url">llama.cpp Sunucu URL'si</label>
                         <input type="text" id="input-llamacpp-url" placeholder="örn: http://localhost:8080" value="http://localhost:8080">
                         <small>llama.cpp server veya llama-server servisinin dinlediği adres.</small>
+                    </div>
+
+                    <!-- Exchange Seçimi -->
+                    <div class="form-group">
+                        <label for="select-exchange">Borsa Seçimi</label>
+                        <select id="select-exchange" class="form-select">
+                            <option value="binance">Binance (Bulut)</option>
+                            <option value="kucoin">KuCoin (Bulut)</option>
+                        </select>
+                        <small>Verilerin çekileceği kripto borsası.</small>
+                    </div>
+
+                    <!-- KuCoin API Ayarları -->
+                    <div class="form-row hidden" id="settings-group-kucoin">
+                        <div class="form-group">
+                            <label for="input-kucoin-key">KuCoin API Key</label>
+                            <div class="input-password-wrapper">
+                                <input type="password" id="input-kucoin-key" placeholder="KuCoin API Key">
+                                <button type="button" id="btn-toggle-kucoin-key-visibility" class="btn-toggle-eye">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                            <small>KuCoin'den API Key almak için hesabınızda API oluşturun.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-kucoin-secret">KuCoin API Secret</label>
+                            <div class="input-password-wrapper">
+                                <input type="password" id="input-kucoin-secret" placeholder="KuCoin API Secret">
+                                <button type="button" id="btn-toggle-kucoin-secret-visibility" class="btn-toggle-eye">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-kucoin-passphrase">KuCoin API Passphrase</label>
+                            <div class="input-password-wrapper">
+                                <input type="password" id="input-kucoin-passphrase" placeholder="KuCoin API Passphrase">
+                                <button type="button" id="btn-toggle-kucoin-passphrase-visibility" class="btn-toggle-eye">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-kucoin-rate-limit">KuCoin Rate Limit (Request/dk)</label>
+                            <input type="number" id="input-kucoin-rate-limit" min="10" max="120" value="60">
+                            <small>KuCoin API rate limit ayarı (varsayılan: 60).</small>
+                        </div>
                     </div>
 
                     <div class="form-row">

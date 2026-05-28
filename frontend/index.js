@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (filtered.length === 0) {
-            scannerTableBody.innerHTML = `<tr><td colspan="7" class="table-empty">Eşleşen sonuç bulunamadı.</td></tr>`;
+            scannerTableBody.innerHTML = `<tr><td colspan="8" class="table-empty">Eşleşen sonuç bulunamadı.</td></tr>`;
             return;
         }
 
@@ -210,6 +210,16 @@ document.addEventListener("DOMContentLoaded", () => {
             if (selectedCoin === coin.symbol) {
                 tr.classList.add("active");
             }
+
+            // Son güncelleme zamanını formatla
+            const lastUpdated = coin.updated_at ? new Date(coin.updated_at) : new Date();
+            const timeDiff = Date.now() - lastUpdated.getTime();
+            let updateTimeText = "Yeni";
+            if (timeDiff > 60000) {
+                const mins = Math.floor(timeDiff / 60000);
+                updateTimeText = mins + " dk";
+            }
+            const updateTimeClass = timeDiff < 60000 ? "text-green" : (timeDiff < 300000 ? "text-gold" : "text-red");
 
             // Değişim Badgesi
             const isUp = coin.change_24h >= 0;
@@ -261,6 +271,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 </td>
                 <td class="text-center">
                     <span class="sig-badge ${sigClass}">${coin.signal}</span>
+                </td>
+                <td class="text-right">
+                    <span class="update-time ${updateTimeClass}">${updateTimeText}</span>
                 </td>
             `;
 
@@ -610,19 +623,25 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("input-scan-interval").value = settings.scan_interval_minutes;
             
             const provider = settings.llm_provider || "gemini";
+            const exchange = settings.exchange || "binance";
+            
             document.getElementById("select-llm-provider").value = provider;
+            document.getElementById("select-exchange").value = exchange;
             document.getElementById("input-ollama-model").value = settings.ollama_model || "llama3";
             document.getElementById("input-ollama-url").value = settings.ollama_api_url || "http://localhost:11434";
             document.getElementById("input-llamacpp-url").value = settings.llamacpp_api_url || "http://localhost:8080";
+            document.getElementById("input-kucoin-rate-limit").value = settings.kucoin_rate_limit || 60;
             
             // Dinamik görünüm durumunu güncelle
             const geminiGrp = document.getElementById("settings-group-gemini");
             const ollamaGrp = document.getElementById("settings-group-ollama");
             const llamacppGrp = document.getElementById("settings-group-llamacpp");
+            const kucoinGrp = document.getElementById("settings-group-kucoin");
             
             geminiGrp.classList.add("hidden");
             ollamaGrp.classList.add("hidden");
             llamacppGrp.classList.add("hidden");
+            kucoinGrp.classList.add("hidden");
             
             if (provider === "ollama") {
                 ollamaGrp.classList.remove("hidden");
@@ -631,6 +650,10 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 geminiGrp.classList.remove("hidden");
             }
+            
+            if (exchange === "kucoin") {
+                kucoinGrp.classList.remove("hidden");
+            }
         } catch (err) {
             console.error("Ayarlar yüklenemedi:", err);
         }
@@ -638,12 +661,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function saveSettingsAPI() {
         const provider = document.getElementById("select-llm-provider").value;
+        const exchange = document.getElementById("select-exchange").value;
         const geminiKey = document.getElementById("input-gemini-key").value;
         const limit = parseInt(document.getElementById("input-coins-limit").value) || 50;
         const interval = parseInt(document.getElementById("input-scan-interval").value) || 15;
         const ollamaModel = document.getElementById("input-ollama-model").value.trim() || "llama3";
         const ollamaUrl = document.getElementById("input-ollama-url").value.trim() || "http://localhost:11434";
         const llamacppUrl = document.getElementById("input-llamacpp-url").value.trim() || "http://localhost:8080";
+        const kucoinKey = document.getElementById("input-kucoin-key").value;
+        const kucoinSecret = document.getElementById("input-kucoin-secret").value;
+        const kucoinPassphrase = document.getElementById("input-kucoin-passphrase").value;
+        const kucoinRateLimit = parseInt(document.getElementById("input-kucoin-rate-limit").value) || 60;
         
         const alertMsg = document.getElementById("settings-status-msg");
         
@@ -652,13 +680,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    gemini_api_key: geminiKey.includes("•••") ? "" : geminiKey, // Düzenlenmediyse boş gönder (değiştirme)
+                    gemini_api_key: geminiKey.includes("•••") ? "" : geminiKey,
                     top_coins_limit: limit,
                     scan_interval_minutes: interval,
                     llm_provider: provider,
                     ollama_model: ollamaModel,
                     ollama_api_url: ollamaUrl,
-                    llamacpp_api_url: llamacppUrl
+                    llamacpp_api_url: llamacppUrl,
+                    exchange: exchange,
+                    kucoin_api_key: kucoinKey.includes("•••") ? "" : kucoinKey,
+                    kucoin_api_secret: kucoinSecret.includes("•••") ? "" : kucoinSecret,
+                    kucoin_api_passphrase: kucoinPassphrase.includes("•••") ? "" : kucoinPassphrase,
+                    kucoin_rate_limit: kucoinRateLimit
                 })
             });
             const data = await res.json();
@@ -671,7 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 setTimeout(() => {
                     alertMsg.classList.add("hidden");
                     settingsModal.classList.add("hidden");
-                    runMarketScan(true); // Yeniden tarama tetikle
+                    runMarketScan(true);
                 }, 2000);
             }
         } catch (err) {
@@ -772,6 +805,55 @@ document.addEventListener("DOMContentLoaded", () => {
             llamacppGrp.classList.remove("hidden");
         } else {
             geminiGrp.classList.remove("hidden");
+        }
+    });
+
+    // Borsa Seçimi Değişimi
+    document.getElementById("select-exchange").addEventListener("change", (e) => {
+        const val = e.target.value;
+        const kucoinGrp = document.getElementById("settings-group-kucoin");
+        
+        if (val === "kucoin") {
+            kucoinGrp.classList.remove("hidden");
+        } else {
+            kucoinGrp.classList.add("hidden");
+        }
+    });
+
+    // KuCoin Şifre Görünürlüğü
+    document.getElementById("btn-toggle-kucoin-key-visibility").addEventListener("click", () => {
+        const inp = document.getElementById("input-kucoin-key");
+        const icon = document.querySelector("#btn-toggle-kucoin-key-visibility i");
+        if (inp.type === "password") {
+            inp.type = "text";
+            icon.className = "fa-solid fa-eye-slash";
+        } else {
+            inp.type = "password";
+            icon.className = "fa-solid fa-eye";
+        }
+    });
+    
+    document.getElementById("btn-toggle-kucoin-secret-visibility").addEventListener("click", () => {
+        const inp = document.getElementById("input-kucoin-secret");
+        const icon = document.querySelector("#btn-toggle-kucoin-secret-visibility i");
+        if (inp.type === "password") {
+            inp.type = "text";
+            icon.className = "fa-solid fa-eye-slash";
+        } else {
+            inp.type = "password";
+            icon.className = "fa-solid fa-eye";
+        }
+    });
+    
+    document.getElementById("btn-toggle-kucoin-passphrase-visibility").addEventListener("click", () => {
+        const inp = document.getElementById("input-kucoin-passphrase");
+        const icon = document.querySelector("#btn-toggle-kucoin-passphrase-visibility i");
+        if (inp.type === "password") {
+            inp.type = "text";
+            icon.className = "fa-solid fa-eye-slash";
+        } else {
+            inp.type = "password";
+            icon.className = "fa-solid fa-eye";
         }
     });
 

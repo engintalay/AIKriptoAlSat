@@ -53,6 +53,11 @@ class SettingsUpdateRequest(BaseModel):
     ollama_model: str = "llama3"
     ollama_api_url: str = "http://localhost:11434"
     llamacpp_api_url: str = "http://localhost:8080"
+    exchange: str = "binance"
+    kucoin_api_key: str = ""
+    kucoin_api_secret: str = ""
+    kucoin_api_passphrase: str = ""
+    kucoin_rate_limit: int = 60
 
 # --- API UÇ NOKTALARI (API ENDPOINTS) ---
 
@@ -329,7 +334,10 @@ async def get_settings():
         "llm_provider": config.get_setting("LLM_PROVIDER", "gemini"),
         "ollama_model": config.get_setting("OLLAMA_MODEL", "llama3"),
         "ollama_api_url": config.get_setting("OLLAMA_API_URL", "http://localhost:11434"),
-        "llamacpp_api_url": config.get_setting("LLAMACPP_API_URL", "http://localhost:8080")
+        "llamacpp_api_url": config.get_setting("LLAMACPP_API_URL", "http://localhost:8080"),
+        "exchange": config.get_setting("EXCHANGE", "binance"),
+        "kucoin_api_key_configured": bool(config.get_setting("KUCOIN_API_KEY", "")),
+        "kucoin_rate_limit": int(config.get_setting("KUCOIN_RATE_LIMIT", "60"))
     }
 
 @app.post("/api/settings")
@@ -345,12 +353,24 @@ async def update_settings(req: SettingsUpdateRequest):
     config.update_setting("OLLAMA_MODEL", req.ollama_model)
     config.update_setting("OLLAMA_API_URL", req.ollama_api_url)
     config.update_setting("LLAMACPP_API_URL", req.llamacpp_api_url)
+    config.update_setting("EXCHANGE", req.exchange)
+    
+    # KuCoin API credentials (sadece boş değilse kaydet)
+    if req.kucoin_api_key and not req.kucoin_api_key.startswith("•••"):
+        config.update_setting("KUCOIN_API_KEY", req.kucoin_api_key)
+    if req.kucoin_api_secret and not req.kucoin_api_secret.startswith("•••"):
+        config.update_setting("KUCOIN_API_SECRET", req.kucoin_api_secret)
+    if req.kucoin_api_passphrase and not req.kucoin_api_passphrase.startswith("•••"):
+        config.update_setting("KUCOIN_API_PASSPHRASE", req.kucoin_api_passphrase)
+    
+    config.update_setting("KUCOIN_RATE_LIMIT", str(req.kucoin_rate_limit))
     
     return {
         "status": "success",
         "message": "Ayarlar başarıyla kaydedildi.",
         "gemini_api_key_configured": ai_agent.is_api_key_valid(),
-        "llm_provider": config.get_setting("LLM_PROVIDER", "gemini")
+        "llm_provider": config.get_setting("LLM_PROVIDER", "gemini"),
+        "exchange": req.exchange
     }
 
 # --- STATİK DOSYALAR (FRONTEND MONTAJI) ---
