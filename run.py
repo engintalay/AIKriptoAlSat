@@ -13,9 +13,9 @@ VENV_PYTHON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "
 def start_server():
     """Backend sunucusunu başlatır"""
     print("AI Kripto Al-Sat sunucusu başlatılıyor...")
-    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     process = subprocess.Popen(
-        [VENV_PYTHON, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+        [VENV_PYTHON, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
         preexec_fn=os.setsid
     )
     print(f"Sunucu başlatıldı (PID: {process.pid})")
@@ -25,7 +25,7 @@ def stop_server():
     """Çalışan sunucuyu durdurur"""
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "uvicorn main:app"],
+            ["pgrep", "-f", "uvicorn backend.main:app"],
             capture_output=True,
             text=True
         )

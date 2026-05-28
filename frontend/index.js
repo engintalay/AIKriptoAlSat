@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
             borderDownColor: '#ff3d00',
             wickUpColor: '#00e676',
             wickDownColor: '#ff3d00',
+            priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
         });
 
         // 2. Altına Hacim Serisi Ekle (Küçük ölçekli)
@@ -927,5 +928,5 @@ document.addEventListener("DOMContentLoaded", () => {
     // Her 15 saniyede bir fiyatları/sinyal listesini arkada sessizce güncelle (Arayüz akıcılığı için)
     setInterval(() => {
         runMarketScan(false);
-    }, 15000);
+    }, 15 * 60 * 1000); // 15 dakika
 });

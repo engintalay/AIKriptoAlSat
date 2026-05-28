@@ -87,9 +87,11 @@ async def scan_market(force: bool = False):
             except Exception:
                 pass
 
-    print("Yeni tarama işlemi başlatılıyor (Binance API'den canlı çekim)...")
+    print(f"Yeni tarama işlemi başlatılıyor ({config.get_setting('EXCHANGE', 'Binance').upper()} API'den canlı çekim)...")
     limit = int(config.get_setting("TOP_COINS_LIMIT", 50))
+    print(f"[DEBUG] Tarama limiti: {limit}")
     top_pairs = data_fetcher.fetch_top_usdt_pairs(limit=limit)
+    print(f"[DEBUG] Toplam {len(top_pairs)} coin çekildi")
     
     if not top_pairs:
         # Eğer internet kesik veya hata varsa önbelleği dön
@@ -101,8 +103,9 @@ async def scan_market(force: bool = False):
     scanned_results = []
     
     # Hızlı tarama: Her coin için 1 saatlik mum verilerini çek ve analiz et
-    for pair in top_pairs:
+    for i, pair in enumerate(top_pairs):
         symbol = pair["symbol"]
+        print(f"[DEBUG] ({i+1}/{len(top_pairs)}) {symbol} için OHLCV çekiliyor...")
         # Teknik analiz için 100 saatlik mum verisi yeterlidir
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
         
@@ -128,6 +131,7 @@ async def scan_market(force: bool = False):
                     tp2 = entry * 1.07 if is_buy else entry * 0.93
                     save_signal(symbol, "BUY" if is_buy else "SELL", entry, sl, tp1, tp2)
         else:
+            print(f"[DEBUG] {symbol} için mum verisi çekilemedi, basit verilerle ekleniyor")
             # Mum verisi çekilemediyse basit verilerle ekle
             scanned_results.append({
                 "symbol": symbol,
@@ -142,6 +146,7 @@ async def scan_market(force: bool = False):
                 "details": {"reasons": ["Saatlik mum verisi çekilemedi."]}
             })
 
+    print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
     # Veritabanına kaydet
     save_scanned_coins(scanned_results)
     

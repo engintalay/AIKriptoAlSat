@@ -91,17 +91,21 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
     """
     # 1. Önce tüm symbol'leri al
     url = f"{KUCOIN_BASE_URL}/api/v1/market/allTickers"
+    print(f"[DEBUG] KuCoin API çağrısı: {url}")
     try:
         response = requests.get(url, timeout=10)
+        print(f"[DEBUG] KuCoin API response status: {response.status_code}")
         if response.status_code != 200:
             print(f"KuCoin API hatası: {response.status_code}")
             return []
         
         data = response.json()
         if not data.get("data") or not data["data"].get("ticker"):
+            print("[DEBUG] KuCoin API'den ticker verisi alınamadı")
             return []
         
         tickers = data["data"]["ticker"]
+        print(f"[DEBUG] KuCoin'den {len(tickers)} adet symbol alındı")
         
         # Filtreleme kriterleri:
         # - Sadece USDT çiftleri
@@ -111,8 +115,8 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
         
         for item in tickers:
             symbol = item["symbol"]
-            # KuCoin formatı: BTC-USDT
-            if not symbol.endswith("/USDT"):
+            # KuCoin formatı: BTC-USDT (not /USDT!)
+            if not symbol.endswith("-USDT"):
                 continue
             
             # Leveraged tokenları hariç
@@ -132,21 +136,32 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
                 # Approximate USDT volume
                 usdt_volume = base_volume * price
                 
+                # changeRate veya priceChangePercent'i kullan (string olabilir)
+                change_rate_str = item.get("changeRate", "0")
+                try:
+                    change_pct = float(change_rate_str) * 100
+                except ValueError:
+                    change_pct = 0.0
+                
                 usdt_pairs.append({
-                    "symbol": symbol.replace("/", ""),
+                    "symbol": symbol.replace("-", ""),
                     "symbol_display": symbol,
                     "price": price,
-                    "change_24h": float(item.get("priceChangePercent", 0)),
+                    "change_24h": change_pct,
                     "volume": usdt_volume,
                     "high_24h": float(item.get("high", 0)),
                     "low_24h": float(item.get("low", 0))
                 })
-            except (ValueError, KeyError):
+            except (ValueError, KeyError) as e:
+                print(f"KuCoin parse hatası: {e}, item: {item.get('symbol', 'unknown')}")
                 continue
         
+        print(f"[DEBUG] KuCoin'den {len(usdt_pairs)} USDT çifti filtrelendi")
         # Hacme göre azalan sırala ve ilk LIMIT adet coini al
         usdt_pairs.sort(key=lambda x: x["volume"], reverse=True)
-        return usdt_pairs[:limit]
+        result = usdt_pairs[:limit]
+        print(f"[DEBUG] KuCoin'den {len(result)} coin döndürülüyor")
+        return result
         
     except Exception as e:
         print(f"KuCoin hacimli coinleri çekerken hata: {e}")
@@ -207,8 +222,13 @@ def fetch_ohlcv_kucoin(symbol, interval="1h", limit=100):
     KuCoin'dan belirli bir coine ait mum (OHLCV) verilerini çeker.
     Symbol formatı: BTCUSDT (Binance formatında)
     """
+    print(f"[DEBUG] KuCoin OHLCV çekiliyor: {symbol}, interval: {interval}")
     # KuCoin formatına çevir: BTCUSDT -> BTC-USDT
-    symbol_kucoin = symbol.replace("USDT", "-USDT")
+    # Sembolde zaten - varsa değiştirmeyelim
+    if "-" in symbol:
+        symbol_kucoin = symbol
+    else:
+        symbol_kucoin = symbol.replace("USDT", "-USDT")
     
     # Interval mapping
     interval_map = {
@@ -225,29 +245,37 @@ def fetch_ohlcv_kucoin(symbol, interval="1h", limit=100):
         "type": kucoin_interval,
         "size": limit
     }
+    print(f"[DEBUG] KuCoin OHLCV URL: {url}, params: {params}")
     
     try:
         response = requests.get(url, params=params, timeout=10)
+        print(f"[DEBUG] KuCoin OHLCV response status: {response.status_code}")
         if response.status_code != 200:
             print(f"{symbol} mum verisi çekilemedi (KuCoin Kod: {response.status_code})")
             return None
         
         data = response.json()
         if not data.get("data"):
+            print("[DEBUG] KuCoin OHLCV'den veri alınamadı")
             return None
         
         candles = data["data"]
         if not candles:
+            print("[DEBUG] KuCoin OHLCV'den mum verisi yok")
             return None
         
+        print(f"[DEBUG] KuCoin'den {len(candles)} mum verisi alındı")
         # DataFrame oluştur
         columns = ["timestamp", "open", "close", "high", "low", "volume", "amount"]
         df = pd.DataFrame(candles, columns=columns)
         
-        # Tipleri dönüştür
-        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+        # Tipleri dönüştür (KuCoin timestamp saniye cinsinden)
+        df["timestamp"] = pd.to_datetime(df["timestamp"].astype(int), unit="s")
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = df[col].astype(float)
+        
+        # KuCoin verileri ters sırada geliyor, düzelt
+        df = df.sort_values("timestamp").reset_index(drop=True)
         
         # Sadece ihtiyacımız olan sütunları seçelim
         df = df[["timestamp", "open", "high", "low", "close", "volume"]]
