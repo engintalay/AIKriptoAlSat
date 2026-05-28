@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Kripto Al-Sat - Yapay Zeka Destekli Kripto Analiz ve Tarama</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/index.css">
+    <!-- TradingView Lightweight Charts CDN (Locked to stable v3.8.0) -->
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+    <!-- ÜST NAVİGASYON BAR / HEADER -->
+    <header class="app-header">
+        <div class="header-logo">
+            <div class="logo-icon-wrapper">
+                <i class="fa-solid fa-brain logo-glow-icon"></i>
+            </div>
+            <div class="logo-text">
+                <h1>AI KRİPTO <span>AL-SAT</span></h1>
+                <p>Yapay Zeka ve Teknik Analiz Tarama Terminali</p>
+            </div>
+        </div>
+        
+        <!-- Hızlı İstatistik Kartları -->
+        <div class="header-stats">
+            <div class="stat-card" id="stat-scanned-count">
+                <span class="stat-label">Taranan Coin</span>
+                <span class="stat-value" id="val-scanned-count">0</span>
+            </div>
+            <div class="stat-card" id="stat-active-signals">
+                <span class="stat-label">Aktif Sinyaller</span>
+                <span class="stat-value text-green" id="val-active-signals">0</span>
+            </div>
+            <div class="stat-card" id="stat-win-rate">
+                <span class="stat-label">AI Başarı Oranı</span>
+                <span class="stat-value text-gold" id="val-win-rate">76.8%</span>
+            </div>
+            <div class="stat-card" id="stat-sentiment">
+                <span class="stat-label">Piyasa Duyarlılığı</span>
+                <span class="stat-value text-greed" id="val-sentiment">Açgözlülük (68)</span>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button id="btn-scan-now" class="btn btn-primary">
+                <i class="fa-solid fa-arrows-rotate" id="scan-icon"></i> Canlı Tara
+            </button>
+            <button id="btn-open-settings" class="btn btn-secondary">
+                <i class="fa-solid fa-gear"></i> Ayarlar
+            </button>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="app-main-layout">
+        
+        <!-- SOL PANEL: SCANNER (COIN LİSTESİ) -->
+        <section class="panel scanner-panel">
+            <div class="panel-header">
+                <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Kripto Sinyal Tarayıcı</h2>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="scanner-search" placeholder="Coin Ara... (örn: BTC)">
+                </div>
+            </div>
+            
+            <!-- Hızlı Filtre Butonları -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">Hepsi</button>
+                <button class="filter-tab" data-filter="favs"><i class="fa-solid fa-star text-gold"></i> Favoriler</button>
+                <button class="filter-tab" data-filter="bull"><i class="fa-solid fa-arrow-trend-up text-green"></i> Boğa</button>
+                <button class="filter-tab" data-filter="bear"><i class="fa-solid fa-arrow-trend-down text-red"></i> Ayı</button>
+                <button class="filter-tab" data-filter="oversold">Aşırı Satım</button>
+            </div>
+
+            <!-- Coin Tablo Konteyneri -->
+            <div class="table-container">
+                <table class="scanner-table">
+                    <thead>
+                        <tr>
+                            <th width="40"></th>
+                            <th>Coin</th>
+                            <th class="text-right">Fiyat</th>
+                            <th class="text-right">24s Değişim</th>
+                            <th class="text-right">RSI</th>
+                            <th class="text-center">AI Skoru</th>
+                            <th class="text-center">Sinyal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scanner-table-body">
+                        <!-- JS dinamik olarak dolduracak -->
+                        <tr>
+                            <td colspan="7" class="table-loader">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> Piyasa verileri yükleniyor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SAĞ PANEL: DETAYLAR VE AI RAPORU -->
+        <section class="workspace-panel">
+            <div id="no-selected-coin" class="workspace-empty-state">
+                <i class="fa-solid fa-chart-line-up"></i>
+                <h3>Analiz Edilecek Coini Seçin</h3>
+                <p>Sol taraftaki tarayıcı tablosundan bir işlem çiftine tıklayarak interaktif grafiği, teknik göstergeleri ve yapay zeka işlem planını inceleyebilirsiniz.</p>
+            </div>
+
+            <div id="selected-coin-workspace" class="workspace-content hidden">
+                
+                <!-- COIN DETAY ÜST KARTI -->
+                <div class="coin-detail-header">
+                    <div class="coin-info-block">
+                        <button id="btn-toggle-favorite-detail" class="btn-fav-large">
+                            <i class="fa-regular fa-star" id="detail-fav-icon"></i>
+                        </button>
+                        <div>
+                            <h2 id="detail-coin-symbol">BTC/USDT</h2>
+                            <p id="detail-coin-name">Bitcoin</p>
+                        </div>
+                    </div>
+                    
+                    <div class="coin-metrics-block">
+                        <div class="metric-price">
+                            <span class="price-val" id="detail-coin-price">$0.00</span>
+                            <span class="change-badge" id="detail-coin-change">+0.00%</span>
+                        </div>
+                        <div class="metric-indicator-gauges">
+                            <div class="gauge-item">
+                                <span class="gauge-label">RSI (14)</span>
+                                <span class="gauge-value" id="detail-rsi-val">50.0</span>
+                                <div class="gauge-bar"><div class="gauge-fill rsi-fill" style="width: 50%;"></div></div>
+                            </div>
+                            <div class="gauge-item">
+                                <span class="gauge-label">AI Güç Skoru</span>
+                                <span class="gauge-value text-green" id="detail-score-val">85/100</span>
+                                <div class="gauge-bar"><div class="gauge-fill score-fill" style="width: 85%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANA 3 SÜTUNLU MAKET: GRAFİK, AI RAPORU VE CHAT -->
+                <div class="workspace-grid">
+                    
+                    <!-- 1. SÜTUN: TRADINGVIEW GRAFİĞİ -->
+                    <div class="workspace-column chart-col">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-candlestick"></i> Teknik Grafik</h3>
+                            <div class="chart-timeframes">
+                                <button class="btn-timeframe" data-tf="15m">15d</button>
+                                <button class="btn-timeframe active" data-tf="1h">1s</button>
+                                <button class="btn-timeframe" data-tf="4h">4s</button>
+                                <button class="btn-timeframe" data-tf="1d">1g</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div id="tradingview-chart-container"></div>
+                            <!-- Grafik Yükleniyor Uyarısı -->
+                            <div id="chart-loader" class="chart-loader hidden">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> Grafik güncelleniyor...
+                            </div>
+                        </div>
+                        <div class="technical-reasons-card">
+                            <h4><i class="fa-solid fa-circle-info"></i> Tespit Edilen Teknik Sinyaller</h4>
+                            <ul id="technical-reasons-list">
+                                <!-- JS dolduracak -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 2. SÜTUN: AI RAPORU VE İŞLEM PLANI -->
+                    <div class="workspace-column report-col">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-shield-halved"></i> AI Al-Sat İşlem Stratejisi</h3>
+                            <button id="btn-refresh-report" class="btn btn-mini"><i class="fa-solid fa-arrows-rotate"></i> Yenile</button>
+                        </div>
+                        
+                        <div class="report-content-wrapper">
+                            <div id="report-loader" class="report-loader hidden">
+                                <div class="ai-scanning-animation">
+                                    <i class="fa-solid fa-brain fa-beat"></i>
+                                    <p>Yapay Zeka Mum Formasyonlarını ve İndikatörleri Analiz Ediyor...</p>
+                                    <div class="scan-bar"></div>
+                                </div>
+                            </div>
+
+                            <div id="report-actual-data">
+                                <!-- Üst Özet -->
+                                <div class="report-summary-box">
+                                    <div class="direction-pill" id="report-direction">LONG / BUY</div>
+                                    <p id="report-summary-text">...</p>
+                                </div>
+
+                                <!-- Ticaret Planı Seviyeleri (Kutular halinde) -->
+                                <div class="trade-plan-grid">
+                                    <div class="plan-card entry">
+                                        <span class="plan-label">GİRİŞ BÖLGESİ</span>
+                                        <span class="plan-value" id="report-entry">...</span>
+                                    </div>
+                                    <div class="plan-card stop">
+                                        <span class="plan-label">ZARAR KES (SL)</span>
+                                        <span class="plan-value" id="report-stop">...</span>
+                                    </div>
+                                    <div class="plan-card tp1">
+                                        <span class="plan-label">HEDEF 1 (TP1)</span>
+                                        <span class="plan-value text-green" id="report-tp1">...</span>
+                                    </div>
+                                    <div class="plan-card tp2">
+                                        <span class="plan-label">HEDEF 2 (TP2)</span>
+                                        <span class="plan-value text-green" id="report-tp2">...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Detaylı Analiz Metinleri -->
+                                <div class="report-details-section">
+                                    <div class="detail-block">
+                                        <h5><i class="fa-solid fa-chart-line"></i> Teknik Gerekçelendirme</h5>
+                                        <p id="report-technical-analysis">...</p>
+                                    </div>
+                                    <div class="detail-block">
+                                        <h5><i class="fa-solid fa-shapes"></i> Mum & Formasyon Analizi</h5>
+                                        <p id="report-patterns">...</p>
+                                    </div>
+                                    <div class="detail-block">
+                                        <h5><i class="fa-solid fa-triangle-exclamation text-gold"></i> Risk Değerlendirmesi ve Kaldıraç</h5>
+                                        <div class="risk-badge" id="report-leverage">3x Isolated</div>
+                                        <p id="report-risk-assessment">...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. SÜTUN: COIN AI CHAT -->
+                    <div class="workspace-column chat-col">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-comments"></i> Coin AI Chat</h3>
+                            <span class="chat-status"><i class="fa-solid fa-circle"></i> Çevrimiçi</span>
+                        </div>
+                        
+                        <div class="chat-messages-container" id="chat-messages">
+                            <div class="chat-bubble ai">
+                                Merhaba! Ben bu coine özel eğitilmiş AI Asistanıyım. Mum grafiği, destek/direnç noktaları, kırılımlar veya risk yönetimi hakkında merak ettiğin her şeyi sorabilirsin.
+                            </div>
+                        </div>
+
+                        <!-- Hızlı Öneri Butonları -->
+                        <div class="chat-suggestions">
+                            <button class="btn-suggest">Formasyon Analizi</button>
+                            <button class="btn-suggest">Direnç Neresi?</button>
+                            <button class="btn-suggest">Kaldıraç Tavsiyesi</button>
+                        </div>
+
+                        <!-- Chat Mesaj Gönderme Alanı -->
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input" placeholder="Coine dair soru sorun...">
+                            <button id="btn-send-message"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ALT PANEL: GEÇMİŞ SİNYALLER & BACKTEST PANELİ -->
+    <footer class="app-footer-backtest">
+        <div class="backtest-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> AI Sinyal Geçmişi ve Başarı Takibi (Backtest)</h3>
+            <p>Yapay zeka tarafından son 24 saat içinde üretilen "STRONG BUY / STRONG SELL" sinyallerinin canlı başarı takibi.</p>
+        </div>
+        <div class="backtest-cards-wrapper" id="backtest-cards-container">
+            <!-- JS dinamik dolduracak -->
+            <div class="backtest-empty">Sinyal geçmişi yükleniyor...</div>
+        </div>
+    </footer>
+
+    <!-- AYARLAR MODAL / POPUP -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-gears"></i> AI Kripto Al-Sat Ayarları</h3>
+                <button id="btn-close-settings" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="settings-form">
+                    
+                    <div class="form-group">
+                        <label for="select-llm-provider">Yapay Zeka Sağlayıcısı</label>
+                        <select id="select-llm-provider" class="form-select">
+                            <option value="gemini">Google Gemini AI (Bulut)</option>
+                            <option value="ollama">Ollama Yerel LLM (Local AI)</option>
+                            <option value="llamacpp">llama.cpp Yerel Sunucu (Local AI)</option>
+                        </select>
+                        <small>Analiz raporları ve asistan sohbetleri için kullanılacak yapay zeka motoru.</small>
+                    </div>
+
+                    <!-- Gemini API Key Ayarı -->
+                    <div class="form-group" id="settings-group-gemini">
+                        <label for="input-gemini-key">Gemini API Key (Google AI Studio)</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="input-gemini-key" placeholder="AI Studio'dan aldığınız API Key'i girin">
+                            <button type="button" id="btn-toggle-key-visibility" class="btn-toggle-eye">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <small>API anahtarınız bilgisayarınızda yerel `.env` dosyasına kaydedilir. Boş bırakırsanız simülatör modu çalışır.</small>
+                    </div>
+
+                    <!-- Ollama Yerel Ayarları -->
+                    <div class="form-row hidden" id="settings-group-ollama">
+                        <div class="form-group">
+                            <label for="input-ollama-model">Ollama Model Adı</label>
+                            <input type="text" id="input-ollama-model" placeholder="örn: llama3, gemma2, mistral" value="llama3">
+                            <small>Yerel Ollama kütüphanenizde yüklü model adı.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-ollama-url">Ollama Sunucu URL'si</label>
+                            <input type="text" id="input-ollama-url" placeholder="örn: http://localhost:11434" value="http://localhost:11434">
+                            <small>Yerel Ollama servisinin servis adresi.</small>
+                        </div>
+                    </div>
+
+                    <!-- llama.cpp Yerel Ayarları -->
+                    <div class="form-group hidden" id="settings-group-llamacpp">
+                        <label for="input-llamacpp-url">llama.cpp Sunucu URL'si</label>
+                        <input type="text" id="input-llamacpp-url" placeholder="örn: http://localhost:8080" value="http://localhost:8080">
+                        <small>llama.cpp server veya llama-server servisinin dinlediği adres.</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="input-coins-limit">Taranacak Coin Sayısı</label>
+                            <input type="number" id="input-coins-limit" min="10" max="150" value="50">
+                            <small>Hacme göre ilk kaç coin taranacak. (Maks. 150)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-scan-interval">Otomatik Tarama Aralığı (Dakika)</label>
+                            <input type="number" id="input-scan-interval" min="5" max="180" value="15">
+                            <small>Fiyatların arka planda kaç dakikada bir güncelleneceği.</small>
+                        </div>
+                    </div>
+
+                    <div id="settings-status-msg" class="settings-status-alert hidden">
+                        <!-- Mesajlar buraya yazılır -->
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="btn-save-settings" class="btn btn-primary">Ayarları Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Script Controller -->
+    <script src="/static/index.js"></script>
+</body>
+</html>
