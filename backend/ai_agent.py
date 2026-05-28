@@ -1,6 +1,5 @@
 import os
 import json
-import random
 import requests
 from datetime import datetime
 import google.generativeai as genai
@@ -21,85 +20,23 @@ def init_gemini():
 
 def generate_mock_report(symbol, price, change_24h, score, signal, details):
     """
-    API Key olmadığında çalışan, teknik göstergelerle 100% uyumlu
-    akıllı bir simüle edilmiş AI rapor jeneratörü.
+    LLM bağlantısı olmadığında kullanıcıya bilgi veren hata raporu.
     """
-    if not isinstance(details, dict):
-        details = {}
-    # Giriş, Stop Loss ve TP seviyelerini matematiksel olarak hesapla
-    # BUY yönünde giriş fiyata yakın, stop %3 aşağıda, TP'ler yukarıda.
-    # SELL yönünde tam tersi (Short işlem)
-    is_buy = "BUY" in signal
-    
-    if is_buy:
-        entry_min = price * 0.995
-        entry_max = price * 1.002
-        stop_loss = price * 0.965
-        tp1 = price * 1.035
-        tp2 = price * 1.07
-        risk_reward = "1:2.3"
-        leverage = "3x - 5x (Isolated)"
-        direction = "LONG / BUY"
-    else:
-        entry_min = price * 0.998
-        entry_max = price * 1.005
-        stop_loss = price * 1.035
-        tp1 = price * 0.965
-        tp2 = price * 0.93
-        risk_reward = "1:2.0"
-        leverage = "2x - 3x (Isolated)"
-        direction = "SHORT / SELL"
-        
-    if "HOLD" in signal:
-        entry_min = price * 0.99
-        entry_max = price * 1.01
-        stop_loss = price * 0.95
-        tp1 = price * 1.05
-        tp2 = price * 1.10
-        risk_reward = "1:1.8"
-        leverage = "Kaldıraç Önerilmez (Spot)"
-        direction = "WAIT / ACCUMULATE"
-
-    reasons_str = " • " + "\n • ".join(details.get("reasons", ["Fiyat yatay seyrediyor."]))
-    
-    # Simüle edilmiş rapor metinleri
-    summaries = {
-        "STRONG BUY": f"{symbol} paritesinde çok güçlü bir alım ivmesi gözlemleniyor. Teknik göstergelerin tamamı boğa lehine dönmüş durumda. Yüksek hacimli kırılımla birlikte yükselişin devam etmesi bekleniyor.",
-        "BUY": f"{symbol} paritesi teknik açıdan olumlu bir alım bölgesinde. İndikatörler aşırı satım sonrası toparlanmaya işaret ediyor. Destek seviyelerinden kademeli alım değerlendirilebilir.",
-        "HOLD": f"{symbol} şu anda karar aşamasında. Yatay konsolidasyon veya kararsız mum yapıları mevcut. Yeni bir kırılım yönü gelene kadar pozisyon korumak en makul seçenektir.",
-        "SELL": f"{symbol} paritesinde ayıların baskısı artıyor. Kısa vadeli destekler kırılmış durumda ve momentum zayıflıyor. Kâr alımı veya risk azaltımı düşünülebilir.",
-        "STRONG SELL": f"{symbol} paritesinde çok ciddi bir satış baskısı mevcut. Tüm hareketli ortalamaların altına inilmiş durumda ve RSI aşırı satım bölgesine doğru dik bir düşüş gösteriyor. Risk oldukça yüksek."
-    }
-    
-    patterns = [
-        "Yükselen Üçgen (Ascending Triangle) Formasyonu belirginleşiyor.",
-        "İkili Dip (Double Bottom) Formasyonu tamamlanmak üzere.",
-        "Fiyat, majör direnç bölgesinden sert bir hacimle geri çekildi.",
-        "Düşen Kama (Falling Wedge) yukarı yönlü kırıldı.",
-        "RSI ve Fiyat arasında hafif bir pozitif uyumsuzluk (Bullish Divergence) var.",
-        "Kritik EMA 50 desteği başarıyla test edildi ve alıcılar devreye girdi."
-    ]
-    
-    chosen_pattern = random.choice(patterns) if is_buy else "Dirençten dönüş / OBO (Omuz Baş Omuz) riski mevcut."
-    if "HOLD" in signal:
-        chosen_pattern = "Dikdörtgen Konsolidasyon Alanı (Yatay Kanal) içinde hareket ediyor."
-
-    report = {
+    return {
         "symbol": symbol,
-        "direction": direction,
+        "direction": "⚠️ AI BAĞLANTISI YOK",
         "score": score,
-        "summary": summaries.get(signal, "Parite nötr durumda."),
-        "entry_zone": f"{entry_min:.4f} - {entry_max:.4f}",
-        "stop_loss": f"{stop_loss:.4f}",
-        "take_profit_1": f"{tp1:.4f}",
-        "take_profit_2": f"{tp2:.4f}",
-        "risk_reward_ratio": risk_reward,
-        "leverage_advice": leverage,
-        "technical_analysis": f"Hesaplanan göstergeler:\n{reasons_str}\nRSI değeri {details.get('rsi', 50.0):.1f} seviyesinde ve MACD trend gücünü doğruluyor.",
-        "chart_patterns": chosen_pattern,
-        "risk_assessment": "Piyasanın genel yönü (Bitcoin hareketleri) yakından takip edilmelidir. Stop seviyesine sadık kalınmalıdır."
+        "summary": "AI modeline bağlanılamadı. Lütfen Ayarlar'dan LLM sağlayıcınızı kontrol edin (Gemini API Key, Ollama veya llama.cpp sunucusu).",
+        "entry_zone": "-",
+        "stop_loss": "-",
+        "take_profit_1": "-",
+        "take_profit_2": "-",
+        "risk_reward_ratio": "-",
+        "leverage_advice": "-",
+        "technical_analysis": f"Teknik veriler mevcut: RSI, MACD, Bollinger hesaplanmış. Ancak AI yorumu için LLM bağlantısı gerekli.",
+        "chart_patterns": "AI bağlantısı olmadan formasyonlar analiz edilemiyor.",
+        "risk_assessment": "Ayarlar > LLM Sağlayıcı bölümünden bağlantınızı kontrol edin."
     }
-    return report
 
 def generate_ollama_report(symbol, price, change_24h, score, signal, details):
     """
@@ -157,7 +94,7 @@ def generate_ollama_report(symbol, price, change_24h, score, signal, details):
             "format": "json",
             "stream": False
         }
-        response = requests.post(url, json=payload, timeout=25)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             report_text = result.get("response", "")
@@ -226,7 +163,7 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
             ],
             "temperature": 0.2
         }
-        response = requests.post(url, json=payload, timeout=25)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             report_text = result["choices"][0]["message"]["content"]
@@ -244,7 +181,7 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
             "temperature": 0.2,
             "stream": False
         }
-        response = requests.post(url, json=payload, timeout=25)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             report_text = result.get("content", "")
@@ -325,42 +262,8 @@ def generate_ai_report(symbol, price, change_24h, score, signal, details):
         return generate_mock_report(symbol, price, change_24h, score, signal, details)
 
 def get_simulated_chat_reply(symbol, user_message, price, signal, score):
-    """Chat için akıllı ve dinamik simüle edilmiş AI cevapları."""
-    msg = user_message.lower()
-    
-    # Kelime yakalayarak özel cevaplar üretelim
-    if "giriş" in msg or "nereden al" in msg or "gireyim" in msg:
-        if "BUY" in signal:
-            return f"**{symbol}** şu an güçlü bir alım bölgesinde ({price} USDT). Önerilen giriş aralığımız fiyata oldukça yakın. Kademeli alım stratejisi ile bu bölgeden girmek, olası ufak geri çekilmelerde ortalamanızı iyileştirmenizi sağlar."
-        else:
-            return f"**{symbol}** için şu an doğrudan alım önermiyorum. Fiyat düşüş trendinde veya kararsız bir bölgede. Destek seviyelerine doğru bir çekilme beklenmeli veya teknik kırılımın gerçekleşmesi beklenmelidir."
-            
-    elif "stop" in msg or "zarar kes" in msg or "patlar" in msg:
-        stop_val = price * 0.965 if "BUY" in signal else price * 1.035
-        return f"**{symbol}** işlem planında stop seviyesi son derece kritiktir. Şu anki analize göre stop seviyemiz **{stop_val:.4f} USDT** olarak hesaplanmıştır. Bu seviyenin altında 4 saatlik mum kapanışı gelmesi durumunda pozisyondan çıkmak sermayenizi koruyacaktır."
-        
-    elif "hedef" in msg or "tp" in msg or "kar al" in msg or "nereye" in msg:
-        tp1 = price * 1.035 if "BUY" in signal else price * 0.965
-        tp2 = price * 1.07 if "BUY" in signal else price * 0.93
-        return f"**{symbol}** için hedeflerimiz sırasıyla:\n🎯 **TP 1:** {tp1:.4f} USDT (%3.5 potansiyel)\n🎯 **TP 2:** {tp2:.4f} USDT (%7 potansiyel)\nYükseliş trendlerinde TP1 seviyesinde pozisyonun yarısını kapatıp stop noktasını giriş seviyesine çekmek harika bir risk yönetimidir."
-        
-    elif "indikatör" in msg or "rsi" in msg or "macd" in msg:
-        return f"**{symbol}** teknik göstergelerine baktığımızda, AI Skorunun **{score}/100** olduğunu görüyoruz. Bu skor, indikatörlerin ağırlıklı ortalamasıyla hesaplanır. Detay panelinde görebileceğiniz üzere, RSI gücünü koruyor ve MACD momentumu destekliyor."
-        
-    elif "destek" in msg or "direnç" in msg or "seviye" in msg:
-        destek = price * 0.97
-        direnc = price * 1.04
-        return f"**{symbol}** paritesinde takip ettiğimiz güncel teknik seviyeler:\n🛡️ **Majör Destek:** {destek:.4f} USDT\n⚡ **Majör Direnç:** {direnc:.4f} USDT\nFiyat bu direnci hacimli kırarsa yükseliş ivme kazanacaktır."
-
-    elif "kaldıraç" in msg or "risk" in msg:
-        return f"**{symbol}** volatilitesi yüksek bir paritedir. Bu nedenle **maksimum 3x-5x kaldıraç (Isolated)** kullanmanızı veya doğrudan **Spot** piyasada işlem yapmanızı öneririm. Kaldıraçlı işlemlerde likidasyon seviyenizi stop seviyenizin altında tutmaya dikkat edin."
-
-    # Genel / Selamlaşma cevapları
-    welcome_keywords = ["merhaba", "selam", "hey", "nasılsın", "yardım"]
-    if any(k in msg for k in welcome_keywords):
-        return f"Merhaba! Ben **{symbol}** Analiz Asistanıyım. Bu coine dair indikatör durumlarını, formasyonları, giriş/çıkış stratejilerini sorabilirsin. Sana nasıl yardımcı olabilirim?"
-
-    return f"**{symbol}** için sorduğunuz soruyu anladım. Güncel AI Analiz Skoruna ({score}/100) göre parite **{signal}** sinyalinde. İşlem stratejimiz dahilinde Giriş Bölgesi ({price:.4f} civarı) ve Stop seviyelerine sadık kalarak işlem yönetmenizi tavsiye ederim. Başka bir teknik seviyeyi veya indikatör yorumunu merak ediyorsanız sorabilirsiniz!"
+    """LLM bağlantısı olmadığında kullanıcıya bilgi veren hata mesajı."""
+    return f"⚠️ AI modeline bağlanılamadı. Chat özelliği için Ayarlar'dan LLM sağlayıcınızı (Gemini/Ollama/llama.cpp) kontrol edin."
 
 def chat_with_ollama(symbol, price, signal, score, chat_history, user_message):
     """
@@ -398,7 +301,7 @@ def chat_with_ollama(symbol, price, signal, score, chat_history, user_message):
             "messages": messages,
             "stream": False
         }
-        response = requests.post(url, json=payload, timeout=20)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             return result.get("message", {}).get("content", "Yanıt alınamadı.")
@@ -443,7 +346,7 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
             "messages": messages,
             "temperature": 0.7
         }
-        response = requests.post(url, json=payload, timeout=20)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             return result["choices"][0]["message"]["content"]
@@ -465,7 +368,7 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
             "stream": False,
             "stop": ["Kullanıcı:", "Analist:"]
         }
-        response = requests.post(url, json=payload, timeout=20)
+        response = requests.post(url, json=payload, timeout=300)
         if response.status_code == 200:
             result = response.json()
             return result.get("content", "").strip()

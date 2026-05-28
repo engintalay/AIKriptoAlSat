@@ -234,6 +234,7 @@ def fetch_ohlcv_kucoin(symbol, interval="1h", limit=100):
     interval_map = {
         "15m": "15min",
         "1h": "1hour",
+        "2h": "2hour",
         "4h": "4hour",
         "1d": "1day"
     }

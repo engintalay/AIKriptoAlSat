@@ -100,6 +100,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 timeVisible: true,
                 secondsVisible: false,
             },
+            localization: {
+                timeFormatter: (timestamp) => {
+                    const date = new Date(timestamp * 1000);
+                    return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                },
+                dateFormatter: (timestamp) => {
+                    const date = new Date(timestamp * 1000);
+                    return date.toLocaleDateString('tr-TR');
+                },
+            },
         });
 
         // 1. Mum Serisi Ekle
