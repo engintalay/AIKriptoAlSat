@@ -83,7 +83,7 @@ async def scan_market(force: bool = False):
                     favs = get_favorites()
                     for c in cached_coins:
                         c["is_favorite"] = c["symbol"] in favs
-                    return {"status": "cached", "coins": cached_coins}
+                    return {"status": "cached", "coins": cached_coins, "exchange": config.get_setting("EXCHANGE", "binance")}
             except Exception:
                 pass
 
@@ -98,7 +98,7 @@ async def scan_market(force: bool = False):
         favs = get_favorites()
         for c in cached_coins:
             c["is_favorite"] = c["symbol"] in favs
-        return {"status": "error_fallback_cached", "coins": cached_coins}
+        return {"status": "error_fallback_cached", "coins": cached_coins, "exchange": config.get_setting("EXCHANGE", "binance")}
         
     scanned_results = []
     
@@ -156,9 +156,27 @@ async def scan_market(force: bool = False):
     for c in final_coins:
         c["is_favorite"] = c["symbol"] in favs
         
-    return {"status": "success", "coins": final_coins}
+    return {"status": "success", "coins": final_coins, "exchange": config.get_setting("EXCHANGE", "binance")}
 
-# 2. Coin Mum Verisi (Grafik için)
+# 2. Tek Coin Fiyat Güncelleme
+@app.get("/api/coin/{symbol}/refresh")
+async def refresh_coin(symbol: str):
+    """Tek bir coinin fiyat ve teknik verilerini günceller."""
+    df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
+    if df is None:
+        raise HTTPException(status_code=404, detail=f"{symbol} verisi çekilemedi.")
+    
+    price = float(df["close"].iloc[-1])
+    pair = {"symbol": symbol, "price": price, "volume": float(df["volume"].sum()), "change_24h": 0, "high_24h": float(df["high"].max()), "low_24h": float(df["low"].min())}
+    # 24h change hesapla
+    if len(df) >= 24:
+        old_price = float(df["close"].iloc[-24])
+        pair["change_24h"] = round((price - old_price) / old_price * 100, 3)
+    
+    analysis = analyzer.analyze_coin_status(df, pair)
+    return analysis
+
+# 3. Coin Mum Verisi (Grafik için)
 @app.get("/api/coin/{symbol}/candles")
 async def get_coin_candles(symbol: str, interval: str = "1h", limit: int = 100):
     """

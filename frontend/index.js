@@ -159,6 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
             allCoins = data.coins || [];
             
+            // Exchange badge güncelle
+            const ex = (data.exchange || "binance").toUpperCase();
+            document.getElementById("exchange-badge").textContent = ex;
+            
             // İstatistik Kartlarını Güncelle
             document.getElementById("val-scanned-count").innerText = allCoins.length;
             const activeSigs = allCoins.filter(c => c.signal.includes("BUY") || c.signal.includes("SELL")).length;
@@ -363,6 +367,23 @@ document.addEventListener("DOMContentLoaded", () => {
         loadAIReport();
         loadChatHistory();
     }
+
+    // Coin yenile butonu
+    document.getElementById("btn-refresh-coin").addEventListener("click", async function() {
+        if (!selectedCoin) return;
+        this.classList.add("spinning");
+        try {
+            const res = await fetch(`/api/coin/${selectedCoin}/refresh`);
+            if (res.ok) {
+                const updated = await res.json();
+                // allCoins'deki veriyi güncelle
+                const idx = allCoins.findIndex(c => c.symbol === selectedCoin);
+                if (idx !== -1) { Object.assign(allCoins[idx], updated); }
+                selectCoin(selectedCoin);
+            }
+        } catch(e) { console.error("Coin yenileme hatası:", e); }
+        this.classList.remove("spinning");
+    });
 
     // ==========================================================================
     // 4. TRADINGVIEW GRAFİĞİNE MUM VERİLERİNİ ÇİZME

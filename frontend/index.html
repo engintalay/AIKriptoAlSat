@@ -65,7 +65,7 @@
         <!-- SOL PANEL: SCANNER (COIN LİSTESİ) -->
         <section class="panel scanner-panel">
             <div class="panel-header">
-                <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Kripto Sinyal Tarayıcı</h2>
+                <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Kripto Sinyal Tarayıcı <span id="exchange-badge" class="exchange-badge"></span></h2>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="scanner-search" placeholder="Coin Ara... (örn: BTC)">
@@ -128,6 +128,9 @@
                             <h2 id="detail-coin-symbol">BTC/USDT</h2>
                             <p id="detail-coin-name">Bitcoin</p>
                         </div>
+                        <button id="btn-refresh-coin" class="btn-refresh-coin" title="Bu coini yenile">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
                     </div>
                     
                     <div class="coin-metrics-block">
