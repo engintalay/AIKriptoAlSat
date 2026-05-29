@@ -185,30 +185,42 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
         ai_log("SEND", f"[{symbol}] Rapor isteği → {url}")
         ai_log("PROMPT", f"[{symbol}] {prompt}")
         collected = ""
+        in_think = False
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
             if response.status_code == 200:
-                for chunk in response.iter_lines():
+                buffer = ""
+                for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
                     if is_aborted():
                         ai_log("ABORT", f"[{symbol}] Rapor üretimi iptal edildi.")
                         response.close()
                         return generate_mock_report(symbol, price, change_24h, score, signal, details)
-                    if chunk:
-                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
-                        if line == "[DONE]": break
+                    buffer += chunk
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip().removeprefix("data: ").strip()
+                        if not line or line == "[DONE]":
+                            continue
                         try:
                             data = json.loads(line)
                             delta = data.get("choices", [{}])[0].get("delta", {})
-                            # Think/reasoning content
-                            think = delta.get("reasoning_content", "") or delta.get("thinking", "")
-                            if think:
-                                ai_log("THINK", think)
-                            # Normal content
-                            content = delta.get("content", "")
-                            collected += content
-                            if content:
+                            content = delta.get("content") or ""
+                            if not content:
+                                continue
+                            # Think state machine
+                            if "<think>" in content:
+                                in_think = True
+                                content = content.replace("<think>", "")
+                            if "</think>" in content:
+                                in_think = False
+                                content = content.replace("</think>", "")
+                                continue
+                            if in_think:
+                                ai_log("THINK", content)
+                            else:
+                                collected += content
                                 ai_log("STREAM", content)
                         except json.JSONDecodeError:
-                            collected += line
+                            pass
                 if collected:
                     ai_log("RECV", f"[{symbol}] Rapor alındı ({len(collected)} karakter)")
                     collected = collected.replace("```json", "").replace("```", "").strip()
@@ -408,25 +420,38 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
         ai_log("SEND", f"[{symbol}] Chat isteği → {url}")
         ai_log("PROMPT", f"[{symbol}] Kullanıcı: {user_message}")
         collected = ""
+        in_think = False
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
             if response.status_code == 200:
-                for chunk in response.iter_lines():
+                buffer = ""
+                for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
                     if is_aborted():
                         response.close()
                         ai_log("ABORT", f"[{symbol}] Chat iptal edildi.")
                         return "⚠️ İstek iptal edildi."
-                    if chunk:
-                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
-                        if line == "[DONE]": break
+                    buffer += chunk
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip().removeprefix("data: ").strip()
+                        if not line or line == "[DONE]":
+                            continue
                         try:
                             data = json.loads(line)
                             delta = data.get("choices", [{}])[0].get("delta", {})
-                            think = delta.get("reasoning_content", "") or delta.get("thinking", "")
-                            if think:
-                                ai_log("THINK", think)
-                            content = delta.get("content", "")
-                            collected += content
-                            if content:
+                            content = delta.get("content") or ""
+                            if not content:
+                                continue
+                            if "<think>" in content:
+                                in_think = True
+                                content = content.replace("<think>", "")
+                            if "</think>" in content:
+                                in_think = False
+                                content = content.replace("</think>", "")
+                                continue
+                            if in_think:
+                                ai_log("THINK", content)
+                            else:
+                                collected += content
                                 ai_log("STREAM", content)
                         except json.JSONDecodeError:
                             pass
