@@ -179,6 +179,7 @@
                                     <button class="btn-indicator" data-ind="supertrend" title="SuperTrend">ST</button>
                                     <button class="btn-indicator" data-ind="ichimoku" title="Ichimoku Cloud">ICH</button>
                                     <button class="btn-indicator-settings" id="btn-ind-settings" title="İndikatör Ayarları"><i class="fa-solid fa-sliders"></i></button>
+                                    <button class="btn-indicator-settings" id="btn-show-chat" title="Chat'i Göster" style="display:none"><i class="fa-solid fa-comments"></i></button>
                                 </div>
                                 <div class="chart-timeframes">
                                     <button class="btn-timeframe" data-tf="15m">15d</button>
@@ -305,9 +306,10 @@
                     </div>
 
                     <!-- 3. SÜTUN: COIN AI CHAT -->
-                    <div class="workspace-column chat-col">
+                    <div class="workspace-column chat-col" id="chat-col">
                         <div class="card-header">
                             <h3><i class="fa-solid fa-comments"></i> Coin AI Chat</h3>
+                            <button id="btn-hide-chat" class="btn btn-mini" title="Chat'i Gizle"><i class="fa-solid fa-eye-slash"></i></button>
                             <span class="chat-status"><i class="fa-solid fa-circle"></i> Çevrimiçi</span>
                         </div>
                         

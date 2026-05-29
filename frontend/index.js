@@ -887,6 +887,18 @@ document.addEventListener("DOMContentLoaded", () => {
         loadChartData();
     });
 
+    // Chat gizle/göster
+    const chatCol = document.getElementById("chat-col");
+    const btnShowChat = document.getElementById("btn-show-chat");
+    document.getElementById("btn-hide-chat").addEventListener("click", () => {
+        chatCol.style.display = "none";
+        btnShowChat.style.display = "";
+    });
+    btnShowChat.addEventListener("click", () => {
+        chatCol.style.display = "";
+        btnShowChat.style.display = "none";
+    });
+
     // Canlı Tara Butonu
     btnScanNow.addEventListener("click", () => {
         runMarketScan(true);
