@@ -78,8 +78,8 @@ async def background_scanner():
             print(f"[BG] Arka plan taraması tamamlandı. Sonraki: {interval} dk sonra.")
             if result:
                 from backend.ai_logger import ai_log
-                new_signals = [r for r in result if r.get("signal") in ["STRONG BUY", "STRONG SELL"]]
-                ai_log("SCAN", f"Tarama tamamlandı: {len(result)} coin, {len(new_signals)} güçlü sinyal")
+                new_signals = [r for r in result if r.get("signal") in ["STRONG BUY", "STRONG SELL", "BUY", "SELL"]]
+                ai_log("SCAN", f"Tarama tamamlandı: {len(result)} coin, {len(new_signals)} sinyal")
         except Exception as e:
             print(f"[BG] Arka plan tarama hatası: {e}")
 

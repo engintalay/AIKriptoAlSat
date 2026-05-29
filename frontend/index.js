@@ -1227,8 +1227,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (line.includes("[SCAN]")) {
             runMarketScan(false);
             renderBacktestHistory();
-            // Sadece güçlü sinyal varsa bildirim at (HTTPS gerektirir)
-            if (Notification.permission === "granted" && line.includes("güçlü sinyal") && !line.includes("0 güçlü sinyal")) {
+            // Sadece yeni sinyal varsa bildirim at (HTTPS gerektirir)
+            if (Notification.permission === "granted" && line.includes("sinyal") && !line.includes("0 sinyal")) {
                 const msg = line.split("[SCAN] ")[1] || "Yeni sinyal tespit edildi";
                 new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/icon-192.png" });
             }
