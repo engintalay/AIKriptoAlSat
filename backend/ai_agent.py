@@ -22,6 +22,26 @@ def reset_abort():
 def is_aborted():
     return _abort_flag
 
+def extract_json_from_text(text):
+    """Metinden JSON objesini çıkarır. Farklı model formatlarını destekler."""
+    text = text.strip()
+    # Markdown code block temizle
+    text = text.replace("```json", "").replace("```", "").strip()
+    # Doğrudan JSON dene
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # Metin içinde { } bul
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end+1])
+        except json.JSONDecodeError:
+            pass
+    return None
+
 def is_api_key_valid():
     """Gemini API Key'in tanımlı olup olmadığını kontrol eder."""
     api_key = get_setting("GEMINI_API_KEY")
@@ -115,7 +135,9 @@ def generate_ollama_report(symbol, price, change_24h, score, signal, details):
         if response.status_code == 200:
             result = response.json()
             report_text = result.get("response", "")
-            return json.loads(report_text)
+            parsed = extract_json_from_text(report_text)
+            if parsed:
+                return parsed
         else:
             print(f"Ollama hata kodu döndü: {response.status_code}. Mock moda geçiliyor...")
             return generate_mock_report(symbol, price, change_24h, score, signal, details)
@@ -207,14 +229,15 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
                             content = delta.get("content") or ""
                             if not content:
                                 continue
-                            # Think state machine
+                            # Think/reasoning detection (çeşitli model formatları)
                             if "<think>" in content:
                                 in_think = True
                                 content = content.replace("<think>", "")
                             if "</think>" in content:
                                 in_think = False
                                 content = content.replace("</think>", "")
-                                continue
+                                if not content.strip():
+                                    continue
                             if in_think:
                                 ai_log("THINK", content)
                             else:
@@ -225,7 +248,9 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
                 if collected:
                     ai_log("RECV", f"[{symbol}] Rapor alındı ({len(collected)} karakter)")
                     collected = collected.replace("```json", "").replace("```", "").strip()
-                    return json.loads(collected)
+                    result = extract_json_from_text(collected)
+                    if result:
+                        return result
     except Exception:
         pass
         
@@ -255,8 +280,9 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
                         except json.JSONDecodeError:
                             collected += line
                 if collected:
-                    collected = collected.replace("```json", "").replace("```", "").strip()
-                    return json.loads(collected)
+                    result = extract_json_from_text(collected)
+                    if result:
+                        return result
     except Exception as e:
         print(f"llama.cpp bağlantı hatası: {e}. Mock moda geçiliyor...")
         
@@ -325,8 +351,9 @@ def generate_ai_report(symbol, price, change_24h, score, signal, details):
             prompt,
             generation_config={"response_mime_type": "application/json"}
         )
-        report_dict = json.loads(response.text)
-        return report_dict
+        report_dict = extract_json_from_text(response.text)
+        if report_dict:
+            return report_dict
     except Exception as e:
         print(f"Gemini API rapor üretirken hata verdi: {e}. Mock moda geçiliyor...")
         return generate_mock_report(symbol, price, change_24h, score, signal, details)
