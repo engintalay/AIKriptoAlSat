@@ -187,17 +187,18 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
         collected = ""
         in_think = False
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            response.encoding = "utf-8"
             if response.status_code == 200:
-                buffer = ""
-                for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
+                buffer = b""
+                for chunk in response.iter_content(chunk_size=4096):
                     if is_aborted():
                         ai_log("ABORT", f"[{symbol}] Rapor üretimi iptal edildi.")
                         response.close()
                         return generate_mock_report(symbol, price, change_24h, score, signal, details)
                     buffer += chunk
-                    while "\n" in buffer:
-                        line, buffer = buffer.split("\n", 1)
-                        line = line.strip().removeprefix("data: ").strip()
+                    while b"\n" in buffer:
+                        raw_line, buffer = buffer.split(b"\n", 1)
+                        line = raw_line.decode("utf-8", errors="replace").strip().removeprefix("data: ").strip()
                         if not line or line == "[DONE]":
                             continue
                         try:
@@ -422,17 +423,18 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
         collected = ""
         in_think = False
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            response.encoding = "utf-8"
             if response.status_code == 200:
-                buffer = ""
-                for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
+                buffer = b""
+                for chunk in response.iter_content(chunk_size=4096):
                     if is_aborted():
                         response.close()
                         ai_log("ABORT", f"[{symbol}] Chat iptal edildi.")
                         return "⚠️ İstek iptal edildi."
                     buffer += chunk
-                    while "\n" in buffer:
-                        line, buffer = buffer.split("\n", 1)
-                        line = line.strip().removeprefix("data: ").strip()
+                    while b"\n" in buffer:
+                        raw_line, buffer = buffer.split(b"\n", 1)
+                        line = raw_line.decode("utf-8", errors="replace").strip().removeprefix("data: ").strip()
                         if not line or line == "[DONE]":
                             continue
                         try:
