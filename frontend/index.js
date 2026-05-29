@@ -1226,10 +1226,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (line.includes("[SCAN]")) {
             runMarketScan(false);
             renderBacktestHistory();
-            // Web Notification (HTTPS gerektirir)
-            if (Notification.permission === "granted") {
-                const msg = line.split("[SCAN] ")[1] || "Yeni tarama tamamlandı";
-                new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/favicon.ico" });
+            // Sadece güçlü sinyal varsa bildirim at (HTTPS gerektirir)
+            if (Notification.permission === "granted" && line.includes("güçlü sinyal") && !line.includes("0 güçlü sinyal")) {
+                const msg = line.split("[SCAN] ")[1] || "Yeni sinyal tespit edildi";
+                new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/icon-192.png" });
             }
         }
         
