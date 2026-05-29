@@ -28,6 +28,7 @@ def init_db():
         macd_sig REAL,
         signal TEXT,
         ai_score INTEGER,
+        details TEXT,
         updated_at TEXT
     )
     """)
@@ -51,6 +52,10 @@ def init_db():
     # closed_price sütunu yoksa ekle (migration)
     try:
         cursor.execute("ALTER TABLE signals ADD COLUMN closed_price REAL")
+    except:
+        pass
+    try:
+        cursor.execute("ALTER TABLE scanned_coins ADD COLUMN details TEXT")
     except:
         pass
     # 3. AI Rapor Önbelleği
@@ -94,8 +99,8 @@ def save_scanned_coins(coins_list):
     now_str = datetime.now().isoformat()
     for coin in coins_list:
         cursor.execute("""
-        INSERT INTO scanned_coins (symbol, price, volume, change_24h, rsi, macd_val, macd_sig, signal, ai_score, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO scanned_coins (symbol, price, volume, change_24h, rsi, macd_val, macd_sig, signal, ai_score, details, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(symbol) DO UPDATE SET
             price=excluded.price,
             volume=excluded.volume,
@@ -105,11 +110,12 @@ def save_scanned_coins(coins_list):
             macd_sig=excluded.macd_sig,
             signal=excluded.signal,
             ai_score=excluded.ai_score,
+            details=excluded.details,
             updated_at=?
         """, (
             coin["symbol"], coin["price"], coin["volume"], coin["change_24h"],
             coin["rsi"], coin["macd_val"], coin["macd_sig"], coin["signal"],
-            coin["ai_score"], now_str, now_str
+            coin["ai_score"], json.dumps(coin.get("details", {})), now_str, now_str
         ))
     conn.commit()
     conn.close()
