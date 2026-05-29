@@ -42,6 +42,8 @@ app.add_middleware(
 async def on_startup():
     init_db()
     print("Veritabanı başlatıldı. Sistem hazır.")
+    from backend.ai_logger import set_loop
+    set_loop(asyncio.get_event_loop())
     asyncio.create_task(background_scanner())
 
 # --- API BAZLI SINIFLAR (Pydantic) ---
