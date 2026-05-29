@@ -14,8 +14,18 @@ def start_server():
     """Backend sunucusunu başlatır"""
     print("AI Kripto Al-Sat sunucusu başlatılıyor...")
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # .env'den port oku
+    port = "8000"
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                if line.strip().startswith("PORT="):
+                    port = line.strip().split("=", 1)[1]
+                    break
+
     process = subprocess.Popen(
-        [VENV_PYTHON, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+        [VENV_PYTHON, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", port, "--reload"],
         preexec_fn=os.setsid
     )
     print(f"Sunucu başlatıldı (PID: {process.pid})")
