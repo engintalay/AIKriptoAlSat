@@ -1193,6 +1193,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ==========================================================================
     // AI LOG PANELİ
+    // MOBİL MENÜ
+    document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".mobile-nav-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const view = btn.dataset.view;
+            const mainLayout = document.querySelector(".app-main-layout");
+            const footer = document.querySelector(".app-footer-backtest");
+            
+            mainLayout.classList.remove("mobile-show", "view-scanner", "view-chart", "view-chat");
+            footer.classList.remove("mobile-hidden");
+            
+            if (view === "signals") {
+                // Sadece footer (sinyal tablosu) göster
+                footer.classList.remove("mobile-hidden");
+                renderSignalsTable();
+            } else if (view === "scanner") {
+                mainLayout.classList.add("mobile-show", "view-scanner");
+                footer.classList.add("mobile-hidden");
+            } else if (view === "chart") {
+                mainLayout.classList.add("mobile-show", "view-chart");
+                footer.classList.add("mobile-hidden");
+            } else if (view === "chat") {
+                mainLayout.classList.add("mobile-show", "view-chat");
+                footer.classList.add("mobile-hidden");
+            } else if (view === "settings") {
+                document.getElementById("settings-modal").classList.remove("hidden");
+            }
+        });
+    });
+
     // ==========================================================================
     const logPanel = document.getElementById("ai-log-panel");
     const logContent = document.getElementById("ai-log-content");
