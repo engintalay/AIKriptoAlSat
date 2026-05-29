@@ -1274,8 +1274,9 @@ body::after {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
+.backtest-header h3 { font-size: 13px; margin: 0; }
 
 .backtest-header h3 {
     font-size: 13px;
