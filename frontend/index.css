@@ -1618,6 +1618,8 @@ body::after {
 
 @media (max-width: 768px) {
 .mobile-nav { display: none; }
+
+@media (max-width: 768px) {
     .mobile-nav {
         display: flex;
         gap: 2px;
@@ -1641,7 +1643,7 @@ body::after {
     .stat-cards { flex-wrap: wrap; gap: 6px; }
     .stat-card { min-width: unset; flex: 1 1 45%; padding: 8px; }
     .app-main-layout { display: none; padding: 8px; height: auto; overflow: auto; }
-    .app-main-layout.mobile-show { display: block; grid-template-columns: 1fr; }
+    .app-main-layout.mobile-show { display: block; }
     .app-main-layout.mobile-show .scanner-panel { display: none; }
     .app-main-layout.mobile-show.view-scanner .scanner-panel { display: flex; max-height: 80vh; }
     .app-main-layout.mobile-show.view-scanner .workspace-content,
