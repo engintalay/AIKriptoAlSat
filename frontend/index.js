@@ -900,6 +900,54 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Sinyal görünüm toggle (kart/tablo)
+    const cardsContainer = document.getElementById("backtest-cards-container");
+    const tableContainer = document.getElementById("backtest-table-container");
+    const btnViewCards = document.getElementById("btn-signals-view-cards");
+    const btnViewTable = document.getElementById("btn-signals-view-table");
+    
+    btnViewCards.addEventListener("click", () => {
+        cardsContainer.classList.remove("hidden");
+        tableContainer.classList.add("hidden");
+        btnViewCards.classList.add("active");
+        btnViewTable.classList.remove("active");
+    });
+    btnViewTable.addEventListener("click", () => {
+        cardsContainer.classList.add("hidden");
+        tableContainer.classList.remove("hidden");
+        btnViewTable.classList.add("active");
+        btnViewCards.classList.remove("active");
+        renderSignalsTable();
+    });
+
+    async function renderSignalsTable() {
+        const res = await fetch("/api/signals");
+        const signals = await res.json();
+        const tbody = document.getElementById("signals-table-body");
+        if (!signals || signals.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-secondary)">Sinyal yok</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = signals.map(sig => {
+            const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
+            const pnlText = sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`;
+            const statusMap = { "PENDING": "⏳", "TP1_HIT": "🎯 TP1", "TP2_HIT": "🚀 TP2", "SL_HIT": "🛑 SL" };
+            const date = sig.created_at ? new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
+            return `<tr>
+                <td><b>${sig.symbol.replace("USDT","")}</b></td>
+                <td class="${sig.type === 'BUY' ? 'pnl-positive' : 'pnl-negative'}">${sig.type === "BUY" ? "LONG" : "SHORT"}</td>
+                <td>$${formatPrice(sig.entry_price)}</td>
+                <td>${sig.closed_price ? '$' + formatPrice(sig.closed_price) : '-'}</td>
+                <td>$${formatPrice(sig.stop_loss)}</td>
+                <td>$${formatPrice(sig.take_profit_1)}</td>
+                <td>$${formatPrice(sig.take_profit_2)}</td>
+                <td>${statusMap[sig.status] || sig.status}</td>
+                <td class="${pnlClass}">${pnlText}</td>
+                <td>${date}</td>
+            </tr>`;
+        }).join("");
+    }
+
     // İndikatör Popup
     const indPopup = document.getElementById("indicators-popup");
     const indPopupContent = document.getElementById("indicators-popup-content");

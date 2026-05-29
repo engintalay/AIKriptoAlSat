@@ -1686,3 +1686,9 @@ body::after {
 .ind-popup-content .ind-value { font-weight: 600; color: var(--text-primary); }
 .ind-popup-content .ind-value.positive { color: #00e676; }
 .ind-popup-content .ind-value.negative { color: #ff3d00; }
+.backtest-table-wrapper { overflow-x: auto; padding: 0 16px 16px; }
+.backtest-table-wrapper.hidden { display: none; }
+.signals-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.signals-table th { text-align: left; padding: 6px 8px; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); font-weight: 600; }
+.signals-table td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+.signals-table tr:hover { background: rgba(255,255,255,0.02); }

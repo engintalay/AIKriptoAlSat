@@ -353,11 +353,34 @@
     <footer class="app-footer-backtest">
         <div class="backtest-header">
             <h3><i class="fa-solid fa-clock-rotate-left"></i> AI Sinyal Geçmişi ve Başarı Takibi (Backtest)</h3>
-            <button id="btn-reset-signals" class="btn btn-mini btn-danger">🗑️ Sıfırla</button>
+            <div>
+                <button id="btn-signals-view-cards" class="btn btn-mini active" title="Kart Görünümü"><i class="fa-solid fa-grip"></i></button>
+                <button id="btn-signals-view-table" class="btn btn-mini" title="Tablo Görünümü"><i class="fa-solid fa-table"></i></button>
+                <button id="btn-reset-signals" class="btn btn-mini btn-danger">🗑️ Sıfırla</button>
+            </div>
         </div>
         <div class="backtest-cards-wrapper" id="backtest-cards-container">
             <!-- JS dinamik dolduracak -->
             <div class="backtest-empty">Sinyal geçmişi yükleniyor...</div>
+        </div>
+        <div class="backtest-table-wrapper hidden" id="backtest-table-container">
+            <table class="signals-table">
+                <thead>
+                    <tr>
+                        <th>Coin</th>
+                        <th>Yön</th>
+                        <th>Giriş</th>
+                        <th>Çıkış</th>
+                        <th>SL</th>
+                        <th>TP1</th>
+                        <th>TP2</th>
+                        <th>Durum</th>
+                        <th>P&L</th>
+                        <th>Tarih</th>
+                    </tr>
+                </thead>
+                <tbody id="signals-table-body"></tbody>
+            </table>
         </div>
     </footer>
 
