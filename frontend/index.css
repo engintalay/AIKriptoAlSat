@@ -1632,6 +1632,7 @@ body::after {
 .ai-log-content .log-recv { color: #00e676; font-weight: 600; }
 .ai-log-content .log-abort { color: #ff3d00; }
 .ai-log-content .log-info { color: #b388ff; }
+.ai-log-content .log-think { color: #80cbc4; font-style: italic; }
 .report-stream-preview {
     padding: 12px;
     height: 100%;

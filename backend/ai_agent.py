@@ -197,10 +197,16 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
                         if line == "[DONE]": break
                         try:
                             data = json.loads(line)
-                            delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                            collected += delta
-                            if delta:
-                                ai_log("STREAM", delta)
+                            delta = data.get("choices", [{}])[0].get("delta", {})
+                            # Think/reasoning content
+                            think = delta.get("reasoning_content", "") or delta.get("thinking", "")
+                            if think:
+                                ai_log("THINK", think)
+                            # Normal content
+                            content = delta.get("content", "")
+                            collected += content
+                            if content:
+                                ai_log("STREAM", content)
                         except json.JSONDecodeError:
                             collected += line
                 if collected:
@@ -414,10 +420,14 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
                         if line == "[DONE]": break
                         try:
                             data = json.loads(line)
-                            delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                            collected += delta
-                            if delta:
-                                ai_log("STREAM", delta)
+                            delta = data.get("choices", [{}])[0].get("delta", {})
+                            think = delta.get("reasoning_content", "") or delta.get("thinking", "")
+                            if think:
+                                ai_log("THINK", think)
+                            content = delta.get("content", "")
+                            collected += content
+                            if content:
+                                ai_log("STREAM", content)
                         except json.JSONDecodeError:
                             pass
                 if collected:

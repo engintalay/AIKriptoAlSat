@@ -1090,6 +1090,7 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (line.includes("[RECV]")) cls = "log-recv";
         else if (line.includes("[ABORT]")) cls = "log-abort";
         else if (line.includes("[INFO]")) cls = "log-info";
+        else if (line.includes("[THINK]")) cls = "log-think";
         const div = document.createElement("div");
         div.className = cls;
         div.textContent = line;
@@ -1102,6 +1103,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (streamText) {
                 const content = line.split("[STREAM] ")[1] || "";
                 streamText.textContent += content;
+                streamText.scrollTop = streamText.scrollHeight;
+            }
+        }
+        // Think verilerini de göster
+        if (line.includes("[THINK]")) {
+            const streamText = document.getElementById("report-stream-text");
+            if (streamText) {
+                const content = line.split("[THINK] ")[1] || "";
+                streamText.textContent += "💭 " + content;
                 streamText.scrollTop = streamText.scrollHeight;
             }
         }
