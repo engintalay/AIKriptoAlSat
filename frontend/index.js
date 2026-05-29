@@ -1104,5 +1104,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 streamText.scrollTop = streamText.scrollHeight;
             }
         }
+        // Prompt'u da göster
+        if (line.includes("[PROMPT]")) {
+            const streamText = document.getElementById("report-stream-text");
+            if (streamText) {
+                const content = line.split("[PROMPT] ")[1] || "";
+                streamText.textContent = "═══ GÖNDERİLEN PROMPT ═══\n" + content + "\n\n═══ AI YANITI ═══\n";
+            }
+        }
     };
 });

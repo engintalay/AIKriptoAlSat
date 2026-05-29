@@ -183,7 +183,7 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
             "stream": True
         }
         ai_log("SEND", f"[{symbol}] Rapor isteği → {url}")
-        ai_log("PROMPT", f"[{symbol}] {prompt[:200]}...")
+        ai_log("PROMPT", f"[{symbol}] {prompt}")
         collected = ""
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
             if response.status_code == 200:
