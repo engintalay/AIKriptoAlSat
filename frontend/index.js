@@ -919,6 +919,11 @@ document.addEventListener("DOMContentLoaded", () => {
         btnViewCards.classList.remove("active");
         renderSignalsTable();
     });
+    document.getElementById("btn-signals-expand").addEventListener("click", function() {
+        const footer = document.querySelector(".app-footer-backtest");
+        footer.classList.toggle("expanded");
+        this.querySelector("i").className = footer.classList.contains("expanded") ? "fa-solid fa-compress" : "fa-solid fa-expand";
+    });
 
     async function renderSignalsTable() {
         const res = await fetch("/api/signals");

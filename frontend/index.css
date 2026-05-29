@@ -241,8 +241,8 @@ body::after {
     grid-template-columns: 480px 1fr;
     gap: 16px;
     padding: 16px;
-    height: calc(100vh - 225px); /* Header ve Backtest alanından geriye kalan */
-    overflow: hidden;
+    min-height: calc(100vh - 225px);
+    overflow: visible;
 }
 
 /* Panel Temel Yapısı */
@@ -1250,7 +1250,7 @@ body::after {
    ========================================================================== */
 .app-footer-backtest {
     height: 150px;
-    background: rgba(10, 11, 16, 0.85);
+    background: rgba(10, 11, 16, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-color);
@@ -1258,6 +1258,16 @@ body::after {
     flex-direction: column;
     padding: 14px 24px;
     overflow: hidden;
+    transition: height 0.3s;
+}
+.app-footer-backtest.expanded {
+    height: 80vh;
+    overflow-y: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 500;
 }
 
 .backtest-header {
