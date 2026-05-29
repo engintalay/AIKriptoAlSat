@@ -501,6 +501,9 @@ document.addEventListener("DOMContentLoaded", () => {
         reportActualData.classList.add("hidden");
         btnStopReport.classList.remove("hidden");
         
+        // Stream preview göster
+        reportLoader.innerHTML = '<div class="report-stream-preview" id="report-stream-preview"><span class="stream-label">AI üretiyor...</span><pre id="report-stream-text"></pre></div>';
+        
         try {
             const url = `/api/coin/${selectedCoin}/report${forceRefresh ? '?refresh=true' : ''}`;
             const res = await fetch(url, { signal: reportAbortController.signal });
@@ -1091,5 +1094,15 @@ document.addEventListener("DOMContentLoaded", () => {
         div.textContent = line;
         logContent.appendChild(div);
         logContent.scrollTop = logContent.scrollHeight;
+        
+        // Stream verilerini rapor preview'a da yaz
+        if (line.includes("[STREAM]")) {
+            const streamText = document.getElementById("report-stream-text");
+            if (streamText) {
+                const content = line.split("[STREAM] ")[1] || "";
+                streamText.textContent += content;
+                streamText.scrollTop = streamText.scrollHeight;
+            }
+        }
     };
 });

@@ -1631,3 +1631,29 @@ body::after {
 .ai-log-content .log-stream { color: #00e676; }
 .ai-log-content .log-recv { color: #00e676; font-weight: 600; }
 .ai-log-content .log-abort { color: #ff3d00; }
+.report-stream-preview {
+    padding: 12px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.report-stream-preview .stream-label {
+    font-size: 11px;
+    color: var(--accent-blue);
+    margin-bottom: 8px;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 50% { opacity: 0.5; } }
+.report-stream-preview pre {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #00e676;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+    background: rgba(0,0,0,0.3);
+    padding: 8px;
+    border-radius: 4px;
+}
