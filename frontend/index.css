@@ -1616,7 +1616,6 @@ body::after {
     }
 }
 
-@media (max-width: 768px) {
 .mobile-nav { display: none; }
 
 @media (max-width: 768px) {
