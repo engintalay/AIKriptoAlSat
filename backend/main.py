@@ -322,7 +322,7 @@ async def get_coin_candles(symbol: str, interval: str = "1h", limit: int = 100, 
 
 # 3. AI Al-Sat Strateji Raporu
 @app.get("/api/coin/{symbol}/report")
-async def get_coin_report(symbol: str, refresh: bool = False, request: Request = None):
+async def get_coin_report(symbol: str, refresh: bool = False):
     """
     Belirli bir coine ait derinlemesine AI analiz raporunu döner.
     Önce veritabanı önbelleğine bakar, yoksa veya eskidiyse (1 saat) yenisini üretir.
@@ -371,12 +371,11 @@ async def get_coin_report(symbol: str, refresh: bool = False, request: Request =
         ai_log("INFO", f"[{symbol}] Nedenler: {' | '.join(reasons)}")
     ai_log("INFO", f"[{symbol}] ═══════════════════════════════")
             
-    # Rapor üret (executor'da çalıştır, client disconnect'te iptal et)
+    # Rapor üret (executor'da çalıştır)
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
     ai_agent.reset_abort()
     loop = asyncio.get_event_loop()
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = loop.run_in_executor(executor, lambda: ai_agent.generate_ai_report(
+    report = await loop.run_in_executor(None, lambda: ai_agent.generate_ai_report(
         symbol=symbol,
         price=coin_data["price"],
         change_24h=coin_data["change_24h"],
@@ -384,17 +383,6 @@ async def get_coin_report(symbol: str, refresh: bool = False, request: Request =
         signal=coin_data["signal"],
         details=details
     ))
-    
-    # Client bağlantısını kontrol et
-    while not future.done():
-        if request and await request.is_disconnected():
-            future.cancel()
-            executor.shutdown(wait=False, cancel_futures=True)
-            print(f"{symbol} AI rapor isteği kullanıcı tarafından iptal edildi.")
-            return {"error": "İptal edildi"}
-        await asyncio.sleep(0.5)
-    
-    report = future.result()
     
     # Raporu veritabanına kaydet
     save_ai_report(symbol, coin_data["ai_score"], coin_data["signal"], report)
