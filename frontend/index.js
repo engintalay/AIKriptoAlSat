@@ -889,15 +889,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Canlı Tara Butonu
     btnScanNow.addEventListener("click", () => {
+        runMarketScan(true);
+    });
+
     // Reset Signals butonu
     document.getElementById("btn-reset-signals").addEventListener("click", async () => {
         if (confirm("Tüm sinyal geçmişi silinecek. Emin misiniz?")) {
             await fetch("/api/signals/reset", { method: "POST" });
             renderBacktestHistory();
         }
-    });
-
-        runMarketScan(true);
     });
 
     // Rapor Yenile Butonu
