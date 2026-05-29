@@ -7,6 +7,7 @@ import os
 import asyncio
 import uvicorn
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from backend.database import (
     init_db, save_scanned_coins, get_scanned_coins,
@@ -130,42 +131,48 @@ async def run_scan():
         return None
     
     scanned_results = []
-    for i, pair in enumerate(top_pairs):
+    
+    def scan_single_coin(pair):
+        """Tek bir coin için OHLCV çek ve analiz et."""
         symbol = pair["symbol"]
-        print(f"[DEBUG] ({i+1}/{len(top_pairs)}) {symbol} için OHLCV çekiliyor...")
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
-        
         if df is not None:
-            analysis = analyzer.analyze_coin_status(df, pair)
-            scanned_results.append(analysis)
-            
-            if analysis["signal"] in ["STRONG BUY", "STRONG SELL"]:
-                recent_signals = get_signals(limit=10)
-                already_exists = any(
-                    s["symbol"] == symbol and s["type"] == ("BUY" if "BUY" in analysis["signal"] else "SELL")
-                    for s in recent_signals
-                )
-                if not already_exists:
-                    entry = analysis["price"]
-                    is_buy = "BUY" in analysis["signal"]
-                    sl = entry * 0.97 if is_buy else entry * 1.03
-                    tp1 = entry * 1.03 if is_buy else entry * 0.97
-                    tp2 = entry * 1.07 if is_buy else entry * 0.93
-                    save_signal(symbol, "BUY" if is_buy else "SELL", entry, sl, tp1, tp2)
+            return analyzer.analyze_coin_status(df, pair)
         else:
-            print(f"[DEBUG] {symbol} için mum verisi çekilemedi, basit verilerle ekleniyor")
-            scanned_results.append({
-                "symbol": symbol,
-                "price": pair["price"],
-                "volume": pair["volume"],
-                "change_24h": pair["change_24h"],
-                "rsi": 50.0,
-                "macd_val": 0.0,
-                "macd_sig": 0.0,
-                "signal": "HOLD",
-                "ai_score": 50,
+            return {
+                "symbol": symbol, "price": pair["price"], "volume": pair["volume"],
+                "change_24h": pair["change_24h"], "rsi": 50.0, "macd_val": 0.0,
+                "macd_sig": 0.0, "signal": "HOLD", "ai_score": 50,
                 "details": {"reasons": ["Saatlik mum verisi çekilemedi."]}
-            })
+            }
+    
+    # Paralel tarama (max 5 thread)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(scan_single_coin, pair): pair for pair in top_pairs}
+        for future in as_completed(futures):
+            try:
+                result = future.result(timeout=30)
+                scanned_results.append(result)
+            except Exception as e:
+                pair = futures[future]
+                print(f"[DEBUG] {pair['symbol']} tarama hatası: {e}")
+    
+    # Sinyal kaydet
+    for analysis in scanned_results:
+        if analysis["signal"] in ["STRONG BUY", "STRONG SELL"]:
+            symbol = analysis["symbol"]
+            recent_signals = get_signals(limit=10)
+            already_exists = any(
+                s["symbol"] == symbol and s["type"] == ("BUY" if "BUY" in analysis["signal"] else "SELL")
+                for s in recent_signals
+            )
+            if not already_exists:
+                entry = analysis["price"]
+                is_buy = "BUY" in analysis["signal"]
+                sl = entry * 0.97 if is_buy else entry * 1.03
+                tp1 = entry * 1.03 if is_buy else entry * 0.97
+                tp2 = entry * 1.07 if is_buy else entry * 0.93
+                save_signal(symbol, "BUY" if is_buy else "SELL", entry, sl, tp1, tp2)
 
     print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
     save_scanned_coins(scanned_results)
