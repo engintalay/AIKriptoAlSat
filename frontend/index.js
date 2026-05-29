@@ -890,13 +890,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Chat gizle/göster
     const chatCol = document.getElementById("chat-col");
     const btnShowChat = document.getElementById("btn-show-chat");
+    const workspaceGrid = document.querySelector(".workspace-grid");
     document.getElementById("btn-hide-chat").addEventListener("click", () => {
         chatCol.style.display = "none";
         btnShowChat.style.display = "";
+        workspaceGrid.style.gridTemplateColumns = "1fr 400px";
     });
     btnShowChat.addEventListener("click", () => {
         chatCol.style.display = "";
         btnShowChat.style.display = "none";
+        workspaceGrid.style.gridTemplateColumns = "";
     });
 
     // Canlı Tara Butonu
