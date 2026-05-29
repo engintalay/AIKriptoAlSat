@@ -204,20 +204,34 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
     except Exception:
         pass
         
-    # 2. Deneme: Native /completion API fallback
+    # 2. Deneme: Native /completion API fallback (streaming)
     try:
+        if is_aborted(): return generate_mock_report(symbol, price, change_24h, score, signal, details)
         url = f"{llamacpp_url}/completion"
         payload = {
             "prompt": prompt,
             "temperature": 0.2,
-            "stream": False
+            "stream": True
         }
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code == 200:
-            result = response.json()
-            report_text = result.get("content", "")
-            report_text = report_text.replace("```json", "").replace("```", "").strip()
-            return json.loads(report_text)
+        collected = ""
+        with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            if response.status_code == 200:
+                for chunk in response.iter_lines():
+                    if is_aborted():
+                        print(f"{symbol} AI rapor üretimi iptal edildi (completion).")
+                        response.close()
+                        return generate_mock_report(symbol, price, change_24h, score, signal, details)
+                    if chunk:
+                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
+                        if line == "[DONE]": break
+                        try:
+                            data = json.loads(line)
+                            collected += data.get("content", "")
+                        except json.JSONDecodeError:
+                            collected += line
+                if collected:
+                    collected = collected.replace("```json", "").replace("```", "").strip()
+                    return json.loads(collected)
     except Exception as e:
         print(f"llama.cpp bağlantı hatası: {e}. Mock moda geçiliyor...")
         
@@ -370,22 +384,39 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
         
     messages.append({"role": "user", "content": user_message})
     
-    # 1. Deneme: OpenAI Uyumlu Chat API
+    # 1. Deneme: OpenAI Uyumlu Chat API (streaming)
     try:
+        if is_aborted(): return get_simulated_chat_reply(symbol, user_message, price, signal, score)
         url = f"{llamacpp_url}/v1/chat/completions"
         payload = {
             "messages": messages,
-            "temperature": 0.7
+            "temperature": 0.7,
+            "stream": True
         }
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code == 200:
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+        collected = ""
+        with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            if response.status_code == 200:
+                for chunk in response.iter_lines():
+                    if is_aborted():
+                        response.close()
+                        return "⚠️ İstek iptal edildi."
+                    if chunk:
+                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
+                        if line == "[DONE]": break
+                        try:
+                            data = json.loads(line)
+                            delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            collected += delta
+                        except json.JSONDecodeError:
+                            pass
+                if collected:
+                    return collected
     except Exception:
         pass
         
-    # 2. Deneme: Native /completion fallback
+    # 2. Deneme: Native /completion fallback (streaming)
     try:
+        if is_aborted(): return get_simulated_chat_reply(symbol, user_message, price, signal, score)
         full_prompt = f"{system_prompt}\n\n"
         for msg in messages[1:]:
             role_label = "Kullanıcı" if msg["role"] == "user" else "Analist"
@@ -396,13 +427,26 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
         payload = {
             "prompt": full_prompt,
             "temperature": 0.7,
-            "stream": False,
+            "stream": True,
             "stop": ["Kullanıcı:", "Analist:"]
         }
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code == 200:
-            result = response.json()
-            return result.get("content", "").strip()
+        collected = ""
+        with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            if response.status_code == 200:
+                for chunk in response.iter_lines():
+                    if is_aborted():
+                        response.close()
+                        return "⚠️ İstek iptal edildi."
+                    if chunk:
+                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
+                        if line == "[DONE]": break
+                        try:
+                            data = json.loads(line)
+                            collected += data.get("content", "")
+                        except json.JSONDecodeError:
+                            pass
+                if collected:
+                    return collected.strip()
     except Exception as e:
         print(f"llama.cpp Chat bağlantı hatası: {e}. Simülatöre geçiliyor...")
         
