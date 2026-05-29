@@ -229,19 +229,22 @@ async def scan_market(force: bool = False):
 @app.get("/api/coin/{symbol}/refresh")
 async def refresh_coin(symbol: str):
     """Tek bir coinin fiyat ve teknik verilerini günceller."""
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, lambda: _refresh_coin_sync(symbol))
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"{symbol} verisi çekilemedi.")
+    return result
+
+def _refresh_coin_sync(symbol):
     df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
     if df is None:
-        raise HTTPException(status_code=404, detail=f"{symbol} verisi çekilemedi.")
-    
+        return None
     price = float(df["close"].iloc[-1])
     pair = {"symbol": symbol, "price": price, "volume": float(df["volume"].sum()), "change_24h": 0, "high_24h": float(df["high"].max()), "low_24h": float(df["low"].min())}
-    # 24h change hesapla
     if len(df) >= 24:
         old_price = float(df["close"].iloc[-24])
         pair["change_24h"] = round((price - old_price) / old_price * 100, 3)
-    
-    analysis = analyzer.analyze_coin_status(df, pair)
-    return analysis
+    return analyzer.analyze_coin_status(df, pair)
 
 # 3. Coin Mum Verisi (Grafik için)
 @app.get("/api/coin/{symbol}/candles")

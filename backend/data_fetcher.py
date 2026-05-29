@@ -289,13 +289,22 @@ def fetch_ohlcv_kucoin(symbol, interval="1h", limit=100):
         return None
 
 def fetch_btc_dominance():
-    """BTC dominance verisini CoinGecko'dan çeker."""
+    """BTC dominance verisini CoinGecko'dan çeker (5dk cache)."""
+    global _btc_dom_cache, _btc_dom_time
+    now = time.time()
+    if _btc_dom_cache is not None and now - _btc_dom_time < 300:
+        return _btc_dom_cache
     try:
         url = "https://api.coingecko.com/api/v3/global"
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            return data["data"]["market_cap_percentage"].get("btc", 50.0)
+            _btc_dom_cache = data["data"]["market_cap_percentage"].get("btc", 50.0)
+            _btc_dom_time = now
+            return _btc_dom_cache
     except Exception:
         pass
-    return 50.0  # Varsayılan
+    return _btc_dom_cache if _btc_dom_cache else 50.0
+
+_btc_dom_cache = None
+_btc_dom_time = 0
