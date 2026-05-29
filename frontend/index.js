@@ -1089,6 +1089,7 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (line.includes("[STREAM]")) cls = "log-stream";
         else if (line.includes("[RECV]")) cls = "log-recv";
         else if (line.includes("[ABORT]")) cls = "log-abort";
+        else if (line.includes("[INFO]")) cls = "log-info";
         const div = document.createElement("div");
         div.className = cls;
         div.textContent = line;
@@ -1109,7 +1110,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const streamText = document.getElementById("report-stream-text");
             if (streamText) {
                 const content = line.split("[PROMPT] ")[1] || "";
-                streamText.textContent = "═══ GÖNDERİLEN PROMPT ═══\n" + content + "\n\n═══ AI YANITI ═══\n";
+                streamText.textContent += "\n═══ GÖNDERİLEN PROMPT ═══\n" + content + "\n\n═══ AI YANITI ═══\n";
+            }
+        }
+        // Teknik verileri göster
+        if (line.includes("[INFO]")) {
+            const streamText = document.getElementById("report-stream-text");
+            if (streamText) {
+                const content = line.split("[INFO] ")[1] || "";
+                streamText.textContent += content + "\n";
+                streamText.scrollTop = streamText.scrollHeight;
             }
         }
     };

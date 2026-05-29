@@ -355,6 +355,17 @@ async def get_coin_report(symbol: str, refresh: bool = False, request: Request =
             details = {}
     if not isinstance(details, dict):
         details = {}
+    
+    # Teknik verileri logla (AI'ya göndermeden önce ekranda göster)
+    from backend.ai_logger import ai_log
+    reasons = details.get("reasons", [])
+    ai_log("INFO", f"[{symbol}] ═══ TEKNİK ANALİZ VERİLERİ ═══")
+    ai_log("INFO", f"[{symbol}] Fiyat: {coin_data['price']} | Değişim: {coin_data['change_24h']}%")
+    ai_log("INFO", f"[{symbol}] RSI: {coin_data.get('rsi', '-')} | MACD: {coin_data.get('macd_val', '-')} / {coin_data.get('macd_sig', '-')}")
+    ai_log("INFO", f"[{symbol}] Sinyal: {coin_data['signal']} | AI Skor: {coin_data['ai_score']}")
+    if reasons:
+        ai_log("INFO", f"[{symbol}] Nedenler: {' | '.join(reasons)}")
+    ai_log("INFO", f"[{symbol}] ═══════════════════════════════")
             
     # Rapor üret (executor'da çalıştır, client disconnect'te iptal et)
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
