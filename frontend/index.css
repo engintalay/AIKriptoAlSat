@@ -584,6 +584,7 @@ body::after {
 
 /* Kripto Detay Üst Kartı */
 .coin-detail-header {
+    position: relative;
     padding: 16px 24px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -1662,3 +1663,25 @@ body::after {
 .sig-card-prices { font-size: 11px; color: var(--text-secondary); margin: 4px 0; }
 .pnl-positive { color: #00e676; font-weight: 600; }
 .pnl-negative { color: #ff3d00; font-weight: 600; }
+.indicators-popup {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    z-index: 200;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    min-width: 320px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.indicators-popup.hidden { display: none; }
+.ind-popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ind-popup-header h4 { margin: 0; font-size: 13px; color: var(--text-primary); }
+.btn-close-popup { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; }
+.ind-popup-content { font-size: 12px; line-height: 1.8; }
+.ind-popup-content .ind-row { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding: 3px 0; }
+.ind-popup-content .ind-label { color: var(--text-secondary); }
+.ind-popup-content .ind-value { font-weight: 600; color: var(--text-primary); }
+.ind-popup-content .ind-value.positive { color: #00e676; }
+.ind-popup-content .ind-value.negative { color: #ff3d00; }

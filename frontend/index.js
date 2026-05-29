@@ -900,6 +900,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // İndikatör Popup
+    const indPopup = document.getElementById("indicators-popup");
+    const indPopupContent = document.getElementById("indicators-popup-content");
+    document.getElementById("btn-show-indicators").addEventListener("click", () => {
+        if (indPopup.classList.contains("hidden")) {
+            const coin = allCoins.find(c => c.symbol === selectedCoin);
+            if (!coin || !coin.details) return;
+            const d = typeof coin.details === "string" ? JSON.parse(coin.details) : coin.details;
+            const rows = [
+                ["RSI (14)", d.rsi?.toFixed(1) || "-", d.rsi > 70 ? "negative" : d.rsi < 30 ? "positive" : ""],
+                ["MACD", d.macd?.toFixed(6) || "-", d.macd > d.macd_signal ? "positive" : "negative"],
+                ["MACD Signal", d.macd_signal?.toFixed(6) || "-", ""],
+                ["EMA 50", d.ema_50?.toFixed(4) || "-", coin.price > d.ema_50 ? "positive" : "negative"],
+                ["EMA 200", d.ema_200?.toFixed(4) || "-", coin.price > d.ema_200 ? "positive" : "negative"],
+                ["Bollinger Üst", d.bb_upper?.toFixed(4) || "-", ""],
+                ["Bollinger Alt", d.bb_lower?.toFixed(4) || "-", ""],
+                ["ATR", d.atr?.toFixed(4) || "-", ""],
+                ["ATR %", (d.atr_pct?.toFixed(2) || "-") + "%", d.atr_pct > 5 ? "negative" : "positive"],
+                ["BTC Dominance", (d.btc_dominance?.toFixed(1) || "-") + "%", d.btc_dominance > 55 ? "negative" : d.btc_dominance < 45 ? "positive" : ""],
+            ];
+            indPopupContent.innerHTML = rows.map(([label, val, cls]) =>
+                `<div class="ind-row"><span class="ind-label">${label}</span><span class="ind-value ${cls}">${val}</span></div>`
+            ).join("");
+            // Reasons
+            if (d.reasons && d.reasons.length) {
+                indPopupContent.innerHTML += `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary)"><b>Bulgular:</b><br>• ${d.reasons.join("<br>• ")}</div>`;
+            }
+        }
+        indPopup.classList.toggle("hidden");
+    });
+    document.getElementById("btn-close-indicators").addEventListener("click", () => indPopup.classList.add("hidden"));
+
     // Rapor Yenile Butonu
     btnRefreshReport.addEventListener("click", () => {
         loadAIReport(true);

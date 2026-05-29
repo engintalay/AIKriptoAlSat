@@ -131,6 +131,18 @@
                         <button id="btn-refresh-coin" class="btn-refresh-coin" title="Bu coini yenile">
                             <i class="fa-solid fa-rotate"></i>
                         </button>
+                        <button id="btn-show-indicators" class="btn-refresh-coin" title="İndikatörleri Göster">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- İndikatör Popup -->
+                    <div id="indicators-popup" class="indicators-popup hidden">
+                        <div class="ind-popup-header">
+                            <h4>Teknik İndikatörler</h4>
+                            <button id="btn-close-indicators" class="btn-close-popup">✕</button>
+                        </div>
+                        <div id="indicators-popup-content" class="ind-popup-content"></div>
                     </div>
                     
                     <div class="coin-metrics-block">
@@ -481,6 +493,6 @@
     </div>
 
     <!-- Main Application Script Controller -->
-    <script src="/static/index.js?v=6"></script>
+    <script src="/static/index.js?v=7"></script>
 </body>
 </html>
