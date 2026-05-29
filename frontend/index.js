@@ -1191,6 +1191,29 @@ document.addEventListener("DOMContentLoaded", () => {
         runMarketScan(false);
     }, 15 * 60 * 1000); // 15 dakika
 
+    // Seçili coini her 30 saniyede güncelle
+    setInterval(async () => {
+        if (!selectedCoin) return;
+        try {
+            const res = await fetch(`/api/coin/${selectedCoin}/refresh`);
+            if (res.ok) {
+                const updated = await res.json();
+                const idx = allCoins.findIndex(c => c.symbol === selectedCoin);
+                if (idx !== -1) Object.assign(allCoins[idx], updated);
+                // Fiyat ve metrikleri güncelle
+                detailCoinPrice.innerText = `$${formatPrice(updated.price)}`;
+                const isUp = updated.change_24h >= 0;
+                detailCoinChange.innerText = `${isUp ? '+' : ''}${updated.change_24h.toFixed(2)}%`;
+                detailCoinChange.className = `change-badge ${isUp ? 'up' : 'down'}`;
+                detailRsiVal.innerText = updated.rsi.toFixed(1);
+                rsiFill.style.width = `${updated.rsi}%`;
+                detailScoreVal.innerText = `${updated.ai_score}/100`;
+                scoreFill.style.width = `${updated.ai_score}%`;
+            }
+        } catch(e) {}
+        loadChartData();
+    }, 30000);
+
     // ==========================================================================
     // AI LOG PANELİ
     // MOBİL MENÜ
