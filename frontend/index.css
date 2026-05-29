@@ -238,7 +238,7 @@ body::after {
 .app-main-layout {
     flex: 1;
     display: grid;
-    grid-template-columns: 480px 1fr;
+    grid-template-columns: minmax(380px, 1fr) 2fr;
     gap: 16px;
     padding: 16px;
     min-height: calc(100vh - 225px);
