@@ -184,6 +184,18 @@ async def run_scan():
                 ai_log("SIGNAL", f"Yeni sinyal: {symbol} {'BUY' if is_buy else 'SELL'} @ {entry:.4f}")
 
     print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
+    
+    # Değişiklik tespiti: yeni coin veya sinyal değişimi
+    from backend.ai_logger import ai_log
+    old_coins = {c["symbol"]: c.get("signal", "HOLD") for c in get_scanned_coins()}
+    for coin in scanned_results:
+        sym = coin["symbol"]
+        new_sig = coin["signal"]
+        if sym not in old_coins:
+            ai_log("SIGNAL", f"Yeni coin: {sym} ({new_sig})")
+        elif old_coins[sym] != new_sig:
+            ai_log("SIGNAL", f"Sinyal değişti: {sym} {old_coins[sym]} → {new_sig}")
+    
     save_scanned_coins(scanned_results)
     check_pending_signals(scanned_results)
     return scanned_results
