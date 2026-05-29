@@ -285,3 +285,15 @@ def fetch_ohlcv_kucoin(symbol, interval="1h", limit=100):
     except Exception as e:
         print(f"{symbol} için KuCoin mum verisi çekilirken hata: {e}")
         return None
+
+def fetch_btc_dominance():
+    """BTC dominance verisini CoinGecko'dan çeker."""
+    try:
+        url = "https://api.coingecko.com/api/v3/global"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return data["data"]["market_cap_percentage"].get("btc", 50.0)
+    except Exception:
+        pass
+    return 50.0  # Varsayılan

@@ -133,6 +133,7 @@ async def run_scan():
     if not top_pairs:
         return None
     
+    btc_dom = data_fetcher.fetch_btc_dominance()
     scanned_results = []
     
     def scan_single_coin(pair):
@@ -140,7 +141,7 @@ async def run_scan():
         symbol = pair["symbol"]
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
         if df is not None:
-            return analyzer.analyze_coin_status(df, pair)
+            return analyzer.analyze_coin_status(df, pair, btc_dominance=btc_dom)
         else:
             return {
                 "symbol": symbol, "price": pair["price"], "volume": pair["volume"],

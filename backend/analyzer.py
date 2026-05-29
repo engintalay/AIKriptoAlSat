@@ -43,13 +43,22 @@ def calculate_indicators(df):
     df["bb_upper"] = df["bb_middle"] + (2 * df["bb_std"])
     df["bb_lower"] = df["bb_middle"] - (2 * df["bb_std"])
     
+    # 5. ATR (Average True Range) - 14 periyot
+    high_low = df["high"] - df["low"]
+    high_close = (df["high"] - df["close"].shift(1)).abs()
+    low_close = (df["low"] - df["close"].shift(1)).abs()
+    true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    df["atr"] = true_range.rolling(window=14).mean()
+    
     return df
 
-def analyze_coin_status(df, ticker_info):
+def analyze_coin_status(df, ticker_info, btc_dominance=None):
     """
     Hesaplanan indikatörler ve ticker bilgilerine dayanarak 
     coine ait 0-100 arasında bir ticaret puanı ve sinyal üretir.
     """
+    from backend.data_fetcher import fetch_btc_dominance
+    
     df_ind = calculate_indicators(df)
     if df_ind is None or len(df_ind) == 0:
         return {
@@ -157,8 +166,28 @@ def analyze_coin_status(df, ticker_info):
         score += 5
         reasons.append(f"Giriş gücü yüksek (24s Değişim: +{ticker_info['change_24h']:.1f}%).")
     elif ticker_info["change_24h"] < -8.0:
-        score += 5 # Aşırı düşüşler bazen alım fırsatıdır, ama risklidir.
+        score += 5
         reasons.append(f"Sert düşüş yaşadı, tepki alımı beklenebilir (24s Değişim: {ticker_info['change_24h']:.1f}%).")
+
+    # --- 5. ATR (Volatilite Riski) ---
+    atr = latest.get("atr", 0)
+    atr_pct = (atr / close * 100) if close > 0 else 0
+    if atr_pct > 5:
+        score -= 5
+        reasons.append(f"Yüksek volatilite (ATR: %{atr_pct:.1f}). Risk yüksek.")
+    elif atr_pct < 2:
+        score += 3
+        reasons.append(f"Düşük volatilite (ATR: %{atr_pct:.1f}). Kırılım bekleniyor.")
+
+    # --- 6. BTC DOMINANCE ---
+    btc_dom = btc_dominance if btc_dominance is not None else fetch_btc_dominance()
+    if ticker_info["symbol"] != "BTCUSDT":
+        if btc_dom > 55:
+            score -= 5
+            reasons.append(f"BTC Dominance yüksek (%{btc_dom:.1f}). Altcoinler baskı altında.")
+        elif btc_dom < 45:
+            score += 5
+            reasons.append(f"BTC Dominance düşük (%{btc_dom:.1f}). Altcoin sezonu olabilir.")
 
     # Skoru Sınırla (0-100)
     score = max(0, min(100, int(score)))
@@ -184,6 +213,9 @@ def analyze_coin_status(df, ticker_info):
         "ema_200": float(ema_200),
         "bb_lower": float(bb_lower),
         "bb_upper": float(bb_upper),
+        "atr": float(atr),
+        "atr_pct": float(atr_pct),
+        "btc_dominance": float(btc_dom),
         "reasons": reasons
     }
     
