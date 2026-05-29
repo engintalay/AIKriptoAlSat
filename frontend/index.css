@@ -1661,6 +1661,12 @@ body::after {
     }
     .signals-table { font-size: 10px; }
     .signals-table th, .signals-table td { padding: 4px 4px; }
+    .signals-table th:nth-child(5),
+    .signals-table td:nth-child(5),
+    .signals-table th:nth-child(6),
+    .signals-table td:nth-child(6),
+    .signals-table th:nth-child(7),
+    .signals-table td:nth-child(7) { display: none; }
 }
 /* AI LOG PANELİ */
 .btn-toggle-log {
