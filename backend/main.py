@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -318,7 +318,7 @@ async def get_coin_candles(symbol: str, interval: str = "1h", limit: int = 100, 
 
 # 3. AI Al-Sat Strateji Raporu
 @app.get("/api/coin/{symbol}/report")
-async def get_coin_report(symbol: str, refresh: bool = False):
+async def get_coin_report(symbol: str, refresh: bool = False, request: Request = None):
     """
     Belirli bir coine ait derinlemesine AI analiz raporunu döner.
     Önce veritabanı önbelleğine bakar, yoksa veya eskidiyse (1 saat) yenisini üretir.
@@ -356,16 +356,29 @@ async def get_coin_report(symbol: str, refresh: bool = False):
     if not isinstance(details, dict):
         details = {}
             
-    # Rapor üret
+    # Rapor üret (executor'da çalıştır, client disconnect'te iptal et)
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
-    report = ai_agent.generate_ai_report(
+    loop = asyncio.get_event_loop()
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = loop.run_in_executor(executor, lambda: ai_agent.generate_ai_report(
         symbol=symbol,
         price=coin_data["price"],
         change_24h=coin_data["change_24h"],
         score=coin_data["ai_score"],
         signal=coin_data["signal"],
         details=details
-    )
+    ))
+    
+    # Client bağlantısını kontrol et
+    while not future.done():
+        if request and await request.is_disconnected():
+            future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            print(f"{symbol} AI rapor isteği kullanıcı tarafından iptal edildi.")
+            return {"error": "İptal edildi"}
+        await asyncio.sleep(0.5)
+    
+    report = future.result()
     
     # Raporu veritabanına kaydet
     save_ai_report(symbol, coin_data["ai_score"], coin_data["signal"], report)

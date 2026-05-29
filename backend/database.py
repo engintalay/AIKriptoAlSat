@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crypto_scanner.db")
 
@@ -110,10 +110,12 @@ def save_scanned_coins(coins_list):
     conn.close()
 
 def get_scanned_coins():
-    """Tüm taranan coinleri döner."""
+    """Son taramada güncellenen coinleri döner."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM scanned_coins ORDER BY ai_score DESC")
+    # Son 60 dakika içinde güncellenen coinleri getir
+    cutoff = (datetime.now() - timedelta(minutes=60)).isoformat()
+    cursor.execute("SELECT * FROM scanned_coins WHERE updated_at > ? ORDER BY ai_score DESC", (cutoff,))
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]

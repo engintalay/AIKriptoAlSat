@@ -487,15 +487,23 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 5. AI AL-SAT STRATEJİ RAPORU
     // ==========================================================================
+    let reportAbortController = null;
+    const btnStopReport = document.getElementById("btn-stop-report");
+
     async function loadAIReport(forceRefresh = false) {
         if (!selectedCoin) return;
         
+        // Önceki isteği iptal et
+        if (reportAbortController) reportAbortController.abort();
+        reportAbortController = new AbortController();
+        
         reportLoader.classList.remove("hidden");
         reportActualData.classList.add("hidden");
+        btnStopReport.classList.remove("hidden");
         
         try {
             const url = `/api/coin/${selectedCoin}/report${forceRefresh ? '?refresh=true' : ''}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { signal: reportAbortController.signal });
             const report = await res.json();
             console.log("[DEBUG] AI Rapor:", report);
             
@@ -524,11 +532,21 @@ document.addEventListener("DOMContentLoaded", () => {
             
             reportActualData.classList.remove("hidden");
         } catch (err) {
-            console.error("AI Rapor yükleme hatası:", err);
+            if (err.name === 'AbortError') {
+                console.log("AI Rapor isteği durduruldu.");
+            } else {
+                console.error("AI Rapor yükleme hatası:", err);
+            }
         } finally {
             reportLoader.classList.add("hidden");
+            btnStopReport.classList.add("hidden");
+            reportAbortController = null;
         }
     }
+
+    btnStopReport.addEventListener("click", () => {
+        if (reportAbortController) reportAbortController.abort();
+    });
 
     // ==========================================================================
     // 6. COIN AI CHAT (SOHBET ASİSTANI)

@@ -1102,6 +1102,8 @@ body::after {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
+.btn-danger { border-color: #ff3d00; color: #ff3d00; }
+.btn-danger:hover { background: #ff3d00; color: #fff; }
 
 /* 3. SÜTUN: COIN AI CHAT */
 .chat-col {
