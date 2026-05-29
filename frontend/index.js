@@ -1291,13 +1291,15 @@ document.addEventListener("DOMContentLoaded", () => {
         logContent.appendChild(div);
         logContent.scrollTop = logContent.scrollHeight;
         
-        // Arka plan taraması bittiğinde ekranı güncelle ve bildirim at
+        // Arka plan taraması bittiğinde ekranı güncelle
         if (line.includes("[SCAN]")) {
             runMarketScan(false);
             renderBacktestHistory();
-            // Sadece yeni sinyal varsa bildirim at (HTTPS gerektirir)
-            if (Notification.permission === "granted" && line.includes("sinyal") && !line.includes("0 sinyal")) {
-                const msg = line.split("[SCAN] ")[1] || "Yeni sinyal tespit edildi";
+        }
+        // Yeni sinyal tespit edildiğinde bildirim at
+        if (line.includes("[SIGNAL]")) {
+            if (Notification.permission === "granted") {
+                const msg = line.split("[SIGNAL] ")[1] || "Yeni sinyal";
                 new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/icon-192.png" });
             }
         }
