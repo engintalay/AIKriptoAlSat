@@ -937,7 +937,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
             const pnlText = sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`;
             const statusMap = { "PENDING": "⏳", "TP1_HIT": "🎯 TP1", "TP2_HIT": "🚀 TP2", "SL_HIT": "🛑 SL" };
-            const date = sig.created_at ? new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
+            const fmtDate = (d) => d ? new Date(d).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
             return `<tr>
                 <td><b>${sig.symbol.replace("USDT","")}</b></td>
                 <td class="${sig.type === 'BUY' ? 'pnl-positive' : 'pnl-negative'}">${sig.type === "BUY" ? "LONG" : "SHORT"}</td>
@@ -948,7 +948,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>$${formatPrice(sig.take_profit_2)}</td>
                 <td>${statusMap[sig.status] || sig.status}</td>
                 <td class="${pnlClass}">${pnlText}</td>
-                <td>${date}</td>
+                <td>${fmtDate(sig.created_at)}</td>
+                <td>${fmtDate(sig.closed_at)}</td>
             </tr>`;
         }).join("");
     }
