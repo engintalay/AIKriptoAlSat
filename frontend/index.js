@@ -1228,11 +1228,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/favicon.ico" });
             }
         }
-        const div = document.createElement("div");
-        div.className = cls;
-        div.textContent = line;
-        logContent.appendChild(div);
-        logContent.scrollTop = logContent.scrollHeight;
         
         // Think verilerini de göster
         if (line.includes("[THINK]")) {
