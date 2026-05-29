@@ -1648,6 +1648,7 @@ body::after {
     .mobile-nav-btn i { font-size: 16px; }
     .mobile-nav-btn.active { color: var(--accent-blue); }
     body { padding-bottom: 70px; }
+    .header-actions { display: none; }
     .app-header { flex-direction: column; gap: 8px; padding: 10px 12px; }
     .stat-cards { flex-wrap: wrap; gap: 6px; }
     .stat-card { min-width: unset; flex: 1 1 45%; padding: 8px; }
