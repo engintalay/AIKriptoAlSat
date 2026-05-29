@@ -350,14 +350,20 @@ async def get_coin_report(symbol: str, refresh: bool = False):
         coin_data = analyzer.analyze_coin_status(df, pair)
         
     # Detay parametreleri çöz
-    # database modülünden gelen details json stringi olabilir, sözlüğe dönüştür
     details = coin_data.get("details")
     if isinstance(details, str):
         try:
             details = json.loads(details)
         except Exception:
             details = {}
+    if not isinstance(details, dict) or not details:
+        # Details yoksa güncel analiz yap
+        df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
+        if df is not None:
+            fresh = analyzer.analyze_coin_status(df, coin_data)
+            details = fresh.get("details", {})
     if not isinstance(details, dict):
+        details = {}
         details = {}
     
     # Teknik verileri logla (AI'ya göndermeden önce ekranda göster)

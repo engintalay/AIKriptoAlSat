@@ -102,6 +102,8 @@ def generate_ollama_report(symbol, price, change_24h, score, signal, details):
       * Bollinger Üst Bandı: {details.get('bb_upper', 'Belirsiz')}
       * EMA 50: {details.get('ema_50', 'Belirsiz')}
       * EMA 200: {details.get('ema_200', 'Belirsiz')}
+      * ATR: {details.get('atr', 'Belirsiz')} (%{details.get('atr_pct', 'Belirsiz')})
+      * BTC Dominance: %{details.get('btc_dominance', 'Belirsiz')}
     - Tespit Edilen Teknik Bulgular:
     {reasons_str}
     
@@ -172,6 +174,8 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
       * Bollinger Üst Bandı: {details.get('bb_upper', 'Belirsiz')}
       * EMA 50: {details.get('ema_50', 'Belirsiz')}
       * EMA 200: {details.get('ema_200', 'Belirsiz')}
+      * ATR: {details.get('atr', 'Belirsiz')} (%{details.get('atr_pct', 'Belirsiz')})
+      * BTC Dominance: %{details.get('btc_dominance', 'Belirsiz')}
     - Tespit Edilen Teknik Bulgular:
     {reasons_str}
     
@@ -325,6 +329,8 @@ def generate_ai_report(symbol, price, change_24h, score, signal, details):
       * Bollinger Üst Bandı: {details.get('bb_upper', 'Belirsiz')}
       * EMA 50: {details.get('ema_50', 'Belirsiz')}
       * EMA 200: {details.get('ema_200', 'Belirsiz')}
+      * ATR: {details.get('atr', 'Belirsiz')} (%{details.get('atr_pct', 'Belirsiz')})
+      * BTC Dominance: %{details.get('btc_dominance', 'Belirsiz')}
     - Tespit Edilen Teknik Bulgular:
     {reasons_str}
     
