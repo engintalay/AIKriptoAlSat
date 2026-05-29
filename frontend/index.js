@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
     }
+    // Service Worker (PWA)
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/static/sw.js").catch(() => {});
+    }
 
     // global State
     let selectedCoin = null;
