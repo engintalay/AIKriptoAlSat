@@ -1272,11 +1272,14 @@ body::after {
 
 .backtest-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    gap: 8px;
 }
-.backtest-header h3 { font-size: 13px; margin: 0; }
+.backtest-header h3 { font-size: 13px; margin: 0; white-space: nowrap; }
+.backtest-header > div { display: flex; gap: 4px; flex-shrink: 0; }
 
 .backtest-header h3 {
     font-size: 13px;
@@ -1654,9 +1657,7 @@ body::after {
         height: 180px;
     }
     .backtest-header {
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-start;
+        flex-wrap: wrap;
     }
     .signals-table { font-size: 10px; }
     .signals-table th, .signals-table td { padding: 4px 4px; }
