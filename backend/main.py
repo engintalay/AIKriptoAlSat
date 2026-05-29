@@ -403,6 +403,11 @@ async def abort_ai_request():
     ai_agent.abort_ai()
     return {"status": "aborted"}
 
+@app.get("/api/fear-greed")
+async def get_fear_greed():
+    """Kripto Fear & Greed Index."""
+    return data_fetcher.fetch_fear_greed()
+
 @app.get("/api/ai/logs")
 async def ai_logs_sse(request: Request):
     """AI loglarını SSE ile stream eder."""

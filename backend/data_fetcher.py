@@ -308,3 +308,25 @@ def fetch_btc_dominance():
 
 _btc_dom_cache = None
 _btc_dom_time = 0
+
+_fear_greed_cache = None
+_fear_greed_time = 0
+
+def fetch_fear_greed():
+    """Kripto Fear & Greed Index'i çeker (10dk cache)."""
+    global _fear_greed_cache, _fear_greed_time
+    now = time.time()
+    if _fear_greed_cache and now - _fear_greed_time < 600:
+        return _fear_greed_cache
+    try:
+        url = "https://api.alternative.me/fng/?limit=1"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            entry = data["data"][0]
+            _fear_greed_cache = {"value": int(entry["value"]), "label": entry["value_classification"]}
+            _fear_greed_time = now
+            return _fear_greed_cache
+    except Exception:
+        pass
+    return _fear_greed_cache or {"value": 50, "label": "Neutral"}

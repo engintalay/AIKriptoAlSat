@@ -1185,6 +1185,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // 10. UYGULAMAYI BAŞLAT
     // ==========================================================================
     runMarketScan(false); // İlk tarama, önbelleği getirecektir
+
+    // Fear & Greed Index güncelle
+    async function updateFearGreed() {
+        try {
+            const res = await fetch("/api/fear-greed");
+            const fg = await res.json();
+            const el = document.getElementById("val-sentiment");
+            const labels = {"Extreme Fear":"Aşırı Korku","Fear":"Korku","Neutral":"Nötr","Greed":"Açgözlülük","Extreme Greed":"Aşırı Açgözlülük"};
+            const label = labels[fg.label] || fg.label;
+            el.textContent = `${label} (${fg.value})`;
+            el.className = fg.value >= 60 ? "stat-value text-green" : fg.value <= 40 ? "stat-value text-red" : "stat-value text-gold";
+        } catch(e) {}
+    }
+    updateFearGreed();
     
     // Her 15 saniyede bir fiyatları/sinyal listesini arkada sessizce güncelle (Arayüz akıcılığı için)
     setInterval(() => {
