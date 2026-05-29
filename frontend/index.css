@@ -1573,11 +1573,82 @@ body::after {
         grid-template-columns: 380px 1fr;
     }
     .workspace-grid {
-        grid-template-columns: 1fr 320px; /* Chat gizli / kaydırılabilir veya altta */
+        grid-template-columns: 1fr 320px;
     }
     .chat-col {
-        display: none; /* Ekran küçülürse chat'i gizle veya ayrı panele taşı */
+        display: none;
     }
+}
+
+@media (max-width: 1024px) {
+    .app-main-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: auto;
+    }
+    .scanner-panel {
+        max-height: 50vh;
+    }
+    .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+    .coin-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .coin-metrics-block {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    .stat-cards {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .stat-card {
+        min-width: unset;
+        flex: 1 1 45%;
+        padding: 8px;
+    }
+    .app-main-layout {
+        padding: 8px;
+        gap: 8px;
+    }
+    .panel-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    .chart-controls {
+        flex-wrap: wrap;
+    }
+    .indicators-popup {
+        left: 0;
+        right: 0;
+        min-width: unset;
+    }
+    .ind-settings-panel {
+        left: 0;
+        right: 0;
+        min-width: unset;
+    }
+    .ai-log-panel {
+        height: 180px;
+    }
+    .backtest-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    .signals-table { font-size: 10px; }
+    .signals-table th, .signals-table td { padding: 4px 4px; }
 }
 /* AI LOG PANELİ */
 .btn-toggle-log {
