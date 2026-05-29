@@ -649,16 +649,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             
-            // Başarı Oranını Hesapla (TP vurulma oranı)
+            // Başarı Oranını ve Toplam P&L Hesapla
             const closedSigs = signals.filter(s => s.status !== "PENDING");
-            const totalSigs = signals.length;
             const pendingSigs = signals.filter(s => s.status === "PENDING").length;
             const wins = closedSigs.filter(s => s.status.includes("TP")).length;
             const losses = closedSigs.filter(s => s.status === "SL_HIT").length;
+            const totalPnl = closedSigs.reduce((sum, s) => sum + (s.pnl || 0), 0);
             
             if (closedSigs.length > 0) {
                 const winRate = (wins / closedSigs.length) * 100;
-                document.getElementById("val-win-rate").innerText = `${winRate.toFixed(1)}% (${wins}W/${losses}L)`;
+                const pnlStr = totalPnl >= 0 ? `+$${totalPnl.toFixed(0)}` : `-$${Math.abs(totalPnl).toFixed(0)}`;
+                const pnlColor = totalPnl >= 0 ? "text-green" : "text-red";
+                document.getElementById("val-win-rate").innerHTML = `${winRate.toFixed(0)}% (${wins}W/${losses}L) <span class="${pnlColor}">${pnlStr}</span>`;
             } else {
                 document.getElementById("val-win-rate").innerText = `${pendingSigs} beklemede`;
             }
@@ -669,28 +671,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 const card = document.createElement("div");
                 card.className = `sig-card ${sig.status}`;
                 
-                let statusText = "BEKLEMEDE";
-                if (sig.status === "TP1_HIT") statusText = "🎯 TP 1 VURULDU";
-                else if (sig.status === "TP2_HIT") statusText = "🚀 TP 2 VURULDU";
-                else if (sig.status === "SL_HIT") statusText = "🛡️ STOP OLUNDU";
+                let statusText = "⏳ BEKLEMEDE";
+                if (sig.status === "TP1_HIT") statusText = "🎯 TP1";
+                else if (sig.status === "TP2_HIT") statusText = "🚀 TP2";
+                else if (sig.status === "SL_HIT") statusText = "🛑 STOP";
+                
+                const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
+                const pnlText = sig.status === "PENDING" ? "" : `<span class="${pnlClass}">${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct >= 0 ? '+' : ''}${sig.pnl_pct}%)</span>`;
+                const closedText = sig.closed_price ? `→ $${formatPrice(sig.closed_price)}` : "";
                 
                 card.innerHTML = `
                     <div class="sig-card-header">
                         <span class="sig-card-sym">${sig.symbol.replace("USDT", "")}</span>
                         <span class="sig-card-type ${sig.type.toLowerCase()}">${sig.type === "BUY" ? "LONG" : "SHORT"}</span>
                     </div>
-                    <span class="sig-card-price">$${formatPrice(sig.entry_price)}</span>
+                    <div class="sig-card-prices">
+                        <span>$${formatPrice(sig.entry_price)} ${closedText}</span>
+                    </div>
                     <div class="sig-card-status">
-                        <span class="sig-status-dot"></span>
                         <span>${statusText}</span>
+                        ${pnlText}
                     </div>
                 `;
                 
-                // Tıklanıldığında o coini seçsin
-                card.addEventListener("click", () => {
-                    selectCoin(sig.symbol);
-                });
-                
+                card.addEventListener("click", () => selectCoin(sig.symbol));
                 backtestCardsContainer.appendChild(card);
             });
         } catch (err) {
@@ -737,6 +741,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("input-gemini-key").value = settings.gemini_api_key_configured ? "••••••••••••••••••••••••" : "";
             document.getElementById("input-coins-limit").value = settings.top_coins_limit;
             document.getElementById("input-scan-interval").value = settings.scan_interval_minutes;
+            document.getElementById("input-backtest-amount").value = settings.backtest_amount || 1000;
             
             const provider = settings.llm_provider || "gemini";
             const exchange = settings.exchange || "binance";
@@ -799,6 +804,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     gemini_api_key: geminiKey.includes("•••") ? "" : geminiKey,
                     top_coins_limit: limit,
                     scan_interval_minutes: interval,
+                    backtest_amount: parseFloat(document.getElementById("input-backtest-amount").value) || 1000,
                     llm_provider: provider,
                     ollama_model: ollamaModel,
                     ollama_api_url: ollamaUrl,
@@ -883,6 +889,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Canlı Tara Butonu
     btnScanNow.addEventListener("click", () => {
+    // Reset Signals butonu
+    document.getElementById("btn-reset-signals").addEventListener("click", async () => {
+        if (confirm("Tüm sinyal geçmişi silinecek. Emin misiniz?")) {
+            await fetch("/api/signals/reset", { method: "POST" });
+            renderBacktestHistory();
+        }
+    });
+
         runMarketScan(true);
     });
 

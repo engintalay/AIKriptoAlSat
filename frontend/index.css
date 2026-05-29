@@ -1659,3 +1659,6 @@ body::after {
     padding: 8px;
     border-radius: 4px;
 }
+.sig-card-prices { font-size: 11px; color: var(--text-secondary); margin: 4px 0; }
+.pnl-positive { color: #00e676; font-weight: 600; }
+.pnl-negative { color: #ff3d00; font-weight: 600; }

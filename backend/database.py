@@ -43,11 +43,16 @@ def init_db():
         take_profit_1 REAL,
         take_profit_2 REAL,
         status TEXT, -- PENDING, TP1_HIT, TP2_HIT, SL_HIT
+        closed_price REAL,
         created_at TEXT,
         closed_at TEXT
     )
     """)
-    
+    # closed_price sütunu yoksa ekle (migration)
+    try:
+        cursor.execute("ALTER TABLE signals ADD COLUMN closed_price REAL")
+    except:
+        pass
     # 3. AI Rapor Önbelleği
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ai_reports (
@@ -150,12 +155,12 @@ def get_pending_signals():
     conn.close()
     return [dict(row) for row in rows]
 
-def update_signal_status(signal_id, status):
+def update_signal_status(signal_id, status, closed_price=None):
     """Sinyal durumunu günceller (örn: TP1 vurdu)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     now_str = datetime.now().isoformat()
-    cursor.execute("UPDATE signals SET status=?, closed_at=? WHERE id=?", (status, now_str, signal_id))
+    cursor.execute("UPDATE signals SET status=?, closed_price=?, closed_at=? WHERE id=?", (status, closed_price, now_str, signal_id))
     conn.commit()
     conn.close()
 
@@ -234,3 +239,11 @@ def get_favorites():
     rows = cursor.fetchall()
     conn.close()
     return [row["symbol"] for row in rows]
+
+def reset_signals():
+    """Tüm sinyalleri siler."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM signals")
+    conn.commit()
+    conn.close()

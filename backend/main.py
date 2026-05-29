@@ -13,7 +13,7 @@ from backend.database import (
     init_db, save_scanned_coins, get_scanned_coins,
     save_signal, get_signals, save_ai_report, get_ai_report,
     save_chat_message, get_chat_history, toggle_favorite, get_favorites,
-    get_pending_signals, update_signal_status
+    get_pending_signals, update_signal_status, reset_signals
 )
 import backend.config as config
 import backend.data_fetcher as data_fetcher
@@ -54,6 +54,7 @@ class SettingsUpdateRequest(BaseModel):
     gemini_api_key: str = ""
     top_coins_limit: int = 50
     scan_interval_minutes: int = 15
+    backtest_amount: float = 1000
     llm_provider: str = "gemini"
     ollama_model: str = "llama3"
     ollama_api_url: str = "http://localhost:11434"
@@ -99,23 +100,23 @@ def check_pending_signals(scanned_results):
         
         if is_buy:
             if current_price <= sig["stop_loss"]:
-                update_signal_status(sig["id"], "SL_HIT")
+                update_signal_status(sig["id"], "SL_HIT", current_price)
                 print(f"[SIGNAL] {symbol} SL vurdu: {current_price:.4f} <= {sig['stop_loss']:.4f}")
             elif current_price >= sig["take_profit_2"]:
-                update_signal_status(sig["id"], "TP2_HIT")
+                update_signal_status(sig["id"], "TP2_HIT", current_price)
                 print(f"[SIGNAL] {symbol} TP2 vurdu: {current_price:.4f} >= {sig['take_profit_2']:.4f}")
             elif current_price >= sig["take_profit_1"]:
-                update_signal_status(sig["id"], "TP1_HIT")
+                update_signal_status(sig["id"], "TP1_HIT", current_price)
                 print(f"[SIGNAL] {symbol} TP1 vurdu: {current_price:.4f} >= {sig['take_profit_1']:.4f}")
         else:  # SELL
             if current_price >= sig["stop_loss"]:
-                update_signal_status(sig["id"], "SL_HIT")
+                update_signal_status(sig["id"], "SL_HIT", current_price)
                 print(f"[SIGNAL] {symbol} SL vurdu: {current_price:.4f} >= {sig['stop_loss']:.4f}")
             elif current_price <= sig["take_profit_2"]:
-                update_signal_status(sig["id"], "TP2_HIT")
+                update_signal_status(sig["id"], "TP2_HIT", current_price)
                 print(f"[SIGNAL] {symbol} TP2 vurdu: {current_price:.4f} <= {sig['take_profit_2']:.4f}")
             elif current_price <= sig["take_profit_1"]:
-                update_signal_status(sig["id"], "TP1_HIT")
+                update_signal_status(sig["id"], "TP1_HIT", current_price)
                 print(f"[SIGNAL] {symbol} TP1 vurdu: {current_price:.4f} <= {sig['take_profit_1']:.4f}")
 
 # 1. Kripto Tarayıcı Tetikleme ve Listeleme
@@ -486,39 +487,33 @@ async def get_all_favorites():
 # 6. Sinyal Geçmişi (Backtest Raporu)
 @app.get("/api/signals")
 async def get_trading_signals():
-    """AI tarafından geçmişte üretilen sinyallerin listesini döner."""
-    signals = get_signals(limit=40)
-    # Burada sinyallerin anlık fiyatlarını çekip TP veya SL durumlarını simüle eden küçük bir
-    # kontrol mekanizması ekleyebiliriz (Daha gerçekçi Backtest görüntüsü için).
-    # Örneğin, "PENDING" durumdaki sinyallerin bazılarını rastgele TP1 vuruldu veya SL vuruldu yapalım:
-    import random
-    conn = uvicorn.config.Config(app).host # import yardımıyla sqlite doğrudan güncelleme
-    from backend.database import get_db_connection
+    """AI tarafından üretilen sinyallerin listesini P&L ile döner."""
+    signals = get_signals(limit=50)
+    amount = float(config.get_setting("BACKTEST_AMOUNT", "1000"))
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM signals WHERE status='PENDING'")
-    pending_signals = cursor.fetchall()
-    
-    for sig in pending_signals:
-        # Sinyal 3 dakikadan eski ise durumunu sonuçlandır (simülasyon başarısı)
-        created_at = datetime.fromisoformat(sig["created_at"])
-        if datetime.now() - created_at > timedelta(minutes=3):
-            # Rastgele sonuç belirle (%65 ihtimalle TP1 veya TP2 vuruldu, %35 SL vuruldu)
-            rnd = random.random()
-            if rnd < 0.35:
-                cursor.execute("UPDATE signals SET status='SL_HIT', closed_at=? WHERE id=?", 
-                               (datetime.now().isoformat(), sig["id"]))
-            elif rnd < 0.75:
-                cursor.execute("UPDATE signals SET status='TP1_HIT', closed_at=? WHERE id=?", 
-                               (datetime.now().isoformat(), sig["id"]))
+    for sig in signals:
+        sig["investment"] = amount
+        if sig["status"] == "PENDING":
+            sig["pnl"] = 0
+            sig["pnl_pct"] = 0
+        else:
+            entry = sig["entry_price"]
+            closed = sig.get("closed_price") or entry
+            is_buy = sig["type"] == "BUY"
+            if is_buy:
+                pnl_pct = (closed - entry) / entry * 100
             else:
-                cursor.execute("UPDATE signals SET status='TP2_HIT', closed_at=? WHERE id=?", 
-                               (datetime.now().isoformat(), sig["id"]))
-    conn.commit()
-    conn.close()
+                pnl_pct = (entry - closed) / entry * 100
+            sig["pnl_pct"] = round(pnl_pct, 2)
+            sig["pnl"] = round(amount * pnl_pct / 100, 2)
     
-    return get_signals(limit=40)
+    return signals
+
+@app.post("/api/signals/reset")
+async def reset_trading_signals():
+    """Tüm sinyal geçmişini siler."""
+    reset_signals()
+    return {"status": "ok"}
 
 # 7. Ayarlar Servisleri
 @app.get("/api/settings")
@@ -528,6 +523,7 @@ async def get_settings():
         "gemini_api_key_configured": ai_agent.is_api_key_valid(),
         "top_coins_limit": int(config.get_setting("TOP_COINS_LIMIT", 50)),
         "scan_interval_minutes": int(config.get_setting("SCAN_INTERVAL_MINUTES", 15)),
+        "backtest_amount": float(config.get_setting("BACKTEST_AMOUNT", 1000)),
         "llm_provider": config.get_setting("LLM_PROVIDER", "gemini"),
         "ollama_model": config.get_setting("OLLAMA_MODEL", "llama3"),
         "ollama_api_url": config.get_setting("OLLAMA_API_URL", "http://localhost:11434"),
@@ -546,6 +542,7 @@ async def update_settings(req: SettingsUpdateRequest):
         
     config.update_setting("TOP_COINS_LIMIT", str(req.top_coins_limit))
     config.update_setting("SCAN_INTERVAL_MINUTES", str(req.scan_interval_minutes))
+    config.update_setting("BACKTEST_AMOUNT", str(req.backtest_amount))
     config.update_setting("LLM_PROVIDER", req.llm_provider)
     config.update_setting("OLLAMA_MODEL", req.ollama_model)
     config.update_setting("OLLAMA_API_URL", req.ollama_api_url)
