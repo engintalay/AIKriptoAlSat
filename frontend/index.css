@@ -1621,23 +1621,33 @@ body::after {
 @media (max-width: 768px) {
     .mobile-nav {
         display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 900;
+        background: #1a1b26;
+        border-top: 1px solid var(--border-color);
+        padding: 8px 4px;
         gap: 2px;
-        padding: 6px 8px;
-        background: var(--bg-card);
-        border-bottom: 1px solid var(--border-color);
     }
     .mobile-nav-btn {
         flex: 1;
-        padding: 8px 4px;
-        font-size: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 2px;
+        font-size: 9px;
         border: none;
         border-radius: 6px;
         background: transparent;
         color: var(--text-secondary);
         cursor: pointer;
-        white-space: nowrap;
     }
-    .mobile-nav-btn.active { background: var(--accent-blue); color: #fff; }
+    .mobile-nav-btn i { font-size: 16px; }
+    .mobile-nav-btn.active { color: var(--accent-blue); }
+    body { padding-bottom: 70px; }
     .app-header { flex-direction: column; gap: 8px; padding: 10px 12px; }
     .stat-cards { flex-wrap: wrap; gap: 6px; }
     .stat-card { min-width: unset; flex: 1 1 45%; padding: 8px; }
