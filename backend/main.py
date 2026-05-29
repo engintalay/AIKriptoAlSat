@@ -74,8 +74,12 @@ async def background_scanner():
         await asyncio.sleep(interval * 60)
         try:
             print(f"[BG] Arka plan taraması başlatılıyor...")
-            await run_scan()
+            result = await run_scan()
             print(f"[BG] Arka plan taraması tamamlandı. Sonraki: {interval} dk sonra.")
+            if result:
+                from backend.ai_logger import ai_log
+                new_signals = [r for r in result if r.get("signal") in ["STRONG BUY", "STRONG SELL"]]
+                ai_log("SCAN", f"Tarama tamamlandı: {len(result)} coin, {len(new_signals)} güçlü sinyal")
         except Exception as e:
             print(f"[BG] Arka plan tarama hatası: {e}")
 

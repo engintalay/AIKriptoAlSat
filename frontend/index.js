@@ -3,6 +3,11 @@
 // ==========================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Bildirim izni iste (HTTPS'de çalışır)
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
     // global State
     let selectedCoin = null;
     let selectedTimeframe = "1h";
@@ -1206,6 +1211,23 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (line.includes("[ABORT]")) cls = "log-abort";
         else if (line.includes("[INFO]")) cls = "log-info";
         else if (line.includes("[THINK]")) cls = "log-think";
+        else if (line.includes("[SCAN]")) cls = "log-info";
+        const div = document.createElement("div");
+        div.className = cls;
+        div.textContent = line;
+        logContent.appendChild(div);
+        logContent.scrollTop = logContent.scrollHeight;
+        
+        // Arka plan taraması bittiğinde ekranı güncelle ve bildirim at
+        if (line.includes("[SCAN]")) {
+            runMarketScan(false);
+            renderBacktestHistory();
+            // Web Notification (HTTPS gerektirir)
+            if (Notification.permission === "granted") {
+                const msg = line.split("[SCAN] ")[1] || "Yeni tarama tamamlandı";
+                new Notification("AI Kripto Tarayıcı", { body: msg, icon: "/static/favicon.ico" });
+            }
+        }
         const div = document.createElement("div");
         div.className = cls;
         div.textContent = line;
