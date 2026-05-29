@@ -1062,4 +1062,34 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => {
         runMarketScan(false);
     }, 15 * 60 * 1000); // 15 dakika
+
+    // ==========================================================================
+    // AI LOG PANELİ
+    // ==========================================================================
+    const logPanel = document.getElementById("ai-log-panel");
+    const logContent = document.getElementById("ai-log-content");
+    const btnToggleLog = document.getElementById("btn-toggle-log");
+    const btnCloseLog = document.getElementById("btn-close-log");
+    const btnClearLog = document.getElementById("btn-clear-log");
+
+    btnToggleLog.addEventListener("click", () => logPanel.classList.toggle("hidden"));
+    btnCloseLog.addEventListener("click", () => logPanel.classList.add("hidden"));
+    btnClearLog.addEventListener("click", () => { logContent.innerHTML = ""; });
+
+    // SSE bağlantısı
+    const logSource = new EventSource("/api/ai/logs");
+    logSource.onmessage = (e) => {
+        const line = e.data;
+        let cls = "";
+        if (line.includes("[SEND]")) cls = "log-send";
+        else if (line.includes("[PROMPT]")) cls = "log-prompt";
+        else if (line.includes("[STREAM]")) cls = "log-stream";
+        else if (line.includes("[RECV]")) cls = "log-recv";
+        else if (line.includes("[ABORT]")) cls = "log-abort";
+        const div = document.createElement("div");
+        div.className = cls;
+        div.textContent = line;
+        logContent.appendChild(div);
+        logContent.scrollTop = logContent.scrollHeight;
+    };
 });

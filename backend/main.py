@@ -1,6 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
@@ -391,6 +391,31 @@ async def abort_ai_request():
     """AI rapor/chat üretimini iptal eder."""
     ai_agent.abort_ai()
     return {"status": "aborted"}
+
+@app.get("/api/ai/logs")
+async def ai_logs_sse(request: Request):
+    """AI loglarını SSE ile stream eder."""
+    from backend.ai_logger import subscribe, unsubscribe, get_logs
+    
+    async def event_stream():
+        queue = subscribe()
+        try:
+            # Önce mevcut logları gönder
+            for log in get_logs():
+                yield f"data: {log}\n\n"
+            # Yeni logları dinle
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    entry = await asyncio.wait_for(queue.get(), timeout=30)
+                    yield f"data: {entry}\n\n"
+                except asyncio.TimeoutError:
+                    yield f": keepalive\n\n"
+        finally:
+            unsubscribe(queue)
+    
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 # 4. Kripto AI Chat Soru-Cevap
 @app.post("/api/coin/{symbol}/chat")

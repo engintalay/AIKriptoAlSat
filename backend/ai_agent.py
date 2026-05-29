@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 import google.generativeai as genai
 from backend.config import get_setting
+from backend.ai_logger import ai_log
 
 # Global abort flag - rapor/chat iptal mekanizması
 _abort_flag = False
@@ -181,12 +182,14 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
             "temperature": 0.2,
             "stream": True
         }
+        ai_log("SEND", f"[{symbol}] Rapor isteği → {url}")
+        ai_log("PROMPT", f"[{symbol}] {prompt[:200]}...")
         collected = ""
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
             if response.status_code == 200:
                 for chunk in response.iter_lines():
                     if is_aborted():
-                        print(f"{symbol} AI rapor üretimi iptal edildi.")
+                        ai_log("ABORT", f"[{symbol}] Rapor üretimi iptal edildi.")
                         response.close()
                         return generate_mock_report(symbol, price, change_24h, score, signal, details)
                     if chunk:
@@ -196,9 +199,12 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
                             data = json.loads(line)
                             delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
                             collected += delta
+                            if delta:
+                                ai_log("STREAM", delta)
                         except json.JSONDecodeError:
                             collected += line
                 if collected:
+                    ai_log("RECV", f"[{symbol}] Rapor alındı ({len(collected)} karakter)")
                     collected = collected.replace("```json", "").replace("```", "").strip()
                     return json.loads(collected)
     except Exception:
@@ -393,12 +399,15 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
             "temperature": 0.7,
             "stream": True
         }
+        ai_log("SEND", f"[{symbol}] Chat isteği → {url}")
+        ai_log("PROMPT", f"[{symbol}] Kullanıcı: {user_message}")
         collected = ""
         with requests.post(url, json=payload, timeout=300, stream=True) as response:
             if response.status_code == 200:
                 for chunk in response.iter_lines():
                     if is_aborted():
                         response.close()
+                        ai_log("ABORT", f"[{symbol}] Chat iptal edildi.")
                         return "⚠️ İstek iptal edildi."
                     if chunk:
                         line = chunk.decode("utf-8").removeprefix("data: ").strip()
@@ -407,9 +416,12 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
                             data = json.loads(line)
                             delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
                             collected += delta
+                            if delta:
+                                ai_log("STREAM", delta)
                         except json.JSONDecodeError:
                             pass
                 if collected:
+                    ai_log("RECV", f"[{symbol}] Chat yanıtı alındı ({len(collected)} karakter)")
                     return collected
     except Exception:
         pass
