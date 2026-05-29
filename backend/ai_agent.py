@@ -5,6 +5,22 @@ from datetime import datetime
 import google.generativeai as genai
 from backend.config import get_setting
 
+# Global abort flag - rapor/chat iptal mekanizması
+_abort_flag = False
+
+def abort_ai():
+    """AI işlemini iptal et."""
+    global _abort_flag
+    _abort_flag = True
+
+def reset_abort():
+    """Abort flag'i sıfırla."""
+    global _abort_flag
+    _abort_flag = False
+
+def is_aborted():
+    return _abort_flag
+
 def is_api_key_valid():
     """Gemini API Key'in tanımlı olup olmadığını kontrol eder."""
     api_key = get_setting("GEMINI_API_KEY")
@@ -156,20 +172,35 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
     
     # 1. Deneme: OpenAI Uyumlu Chat API
     try:
+        if is_aborted(): return generate_mock_report(symbol, price, change_24h, score, signal, details)
         url = f"{llamacpp_url}/v1/chat/completions"
         payload = {
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.2
+            "temperature": 0.2,
+            "stream": True
         }
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code == 200:
-            result = response.json()
-            report_text = result["choices"][0]["message"]["content"]
-            # Markdown formatındaki JSON'u temizle
-            report_text = report_text.replace("```json", "").replace("```", "").strip()
-            return json.loads(report_text)
+        collected = ""
+        with requests.post(url, json=payload, timeout=300, stream=True) as response:
+            if response.status_code == 200:
+                for chunk in response.iter_lines():
+                    if is_aborted():
+                        print(f"{symbol} AI rapor üretimi iptal edildi.")
+                        response.close()
+                        return generate_mock_report(symbol, price, change_24h, score, signal, details)
+                    if chunk:
+                        line = chunk.decode("utf-8").removeprefix("data: ").strip()
+                        if line == "[DONE]": break
+                        try:
+                            data = json.loads(line)
+                            delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            collected += delta
+                        except json.JSONDecodeError:
+                            collected += line
+                if collected:
+                    collected = collected.replace("```json", "").replace("```", "").strip()
+                    return json.loads(collected)
     except Exception:
         pass
         

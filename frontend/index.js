@@ -546,6 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnStopReport.addEventListener("click", () => {
         if (reportAbortController) reportAbortController.abort();
+        fetch("/api/ai/abort", { method: "POST" });
     });
 
     // ==========================================================================

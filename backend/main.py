@@ -358,6 +358,7 @@ async def get_coin_report(symbol: str, refresh: bool = False, request: Request =
             
     # Rapor üret (executor'da çalıştır, client disconnect'te iptal et)
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
+    ai_agent.reset_abort()
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor(max_workers=1)
     future = loop.run_in_executor(executor, lambda: ai_agent.generate_ai_report(
@@ -384,6 +385,12 @@ async def get_coin_report(symbol: str, refresh: bool = False, request: Request =
     save_ai_report(symbol, coin_data["ai_score"], coin_data["signal"], report)
     
     return report
+
+@app.post("/api/ai/abort")
+async def abort_ai_request():
+    """AI rapor/chat üretimini iptal eder."""
+    ai_agent.abort_ai()
+    return {"status": "aborted"}
 
 # 4. Kripto AI Chat Soru-Cevap
 @app.post("/api/coin/{symbol}/chat")
