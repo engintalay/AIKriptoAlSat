@@ -356,12 +356,6 @@ async def get_coin_report(symbol: str, refresh: bool = False):
             details = json.loads(details)
         except Exception:
             details = {}
-    if not isinstance(details, dict) or not details:
-        # Details yoksa güncel analiz yap
-        df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
-        if df is not None:
-            fresh = analyzer.analyze_coin_status(df, coin_data)
-            details = fresh.get("details", {})
     if not isinstance(details, dict):
         details = {}
         details = {}
@@ -380,8 +374,9 @@ async def get_coin_report(symbol: str, refresh: bool = False):
     # Rapor üret (executor'da çalıştır)
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
     ai_agent.reset_abort()
-    loop = asyncio.get_event_loop()
-    report = await loop.run_in_executor(None, lambda: ai_agent.generate_ai_report(
+    report = await asyncio.get_event_loop().run_in_executor(
+        ThreadPoolExecutor(max_workers=1),
+        lambda: ai_agent.generate_ai_report(
         symbol=symbol,
         price=coin_data["price"],
         change_24h=coin_data["change_24h"],
