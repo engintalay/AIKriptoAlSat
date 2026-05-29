@@ -502,7 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnStopReport.classList.remove("hidden");
         
         // Stream preview göster
-        reportLoader.innerHTML = '<div class="report-stream-preview" id="report-stream-preview"><span class="stream-label">AI üretiyor...</span><pre id="report-stream-text"></pre></div>';
+        reportLoader.innerHTML = '<div class="report-stream-preview" id="report-stream-preview"><span class="stream-label">AI üretiyor...</span><pre id="report-stream-text" data-think-started="" data-stream-started=""></pre></div>';
         
         try {
             const url = `/api/coin/${selectedCoin}/report${forceRefresh ? '?refresh=true' : ''}`;
@@ -1097,21 +1097,31 @@ document.addEventListener("DOMContentLoaded", () => {
         logContent.appendChild(div);
         logContent.scrollTop = logContent.scrollHeight;
         
-        // Stream verilerini rapor preview'a da yaz
-        if (line.includes("[STREAM]")) {
-            const streamText = document.getElementById("report-stream-text");
-            if (streamText) {
-                const content = line.split("[STREAM] ")[1] || "";
-                streamText.textContent += content;
-                streamText.scrollTop = streamText.scrollHeight;
-            }
-        }
         // Think verilerini de göster
         if (line.includes("[THINK]")) {
             const streamText = document.getElementById("report-stream-text");
             if (streamText) {
                 const content = line.split("[THINK] ")[1] || "";
-                streamText.textContent += "💭 " + content;
+                // İlk think satırında başlık ekle
+                if (!streamText.dataset.thinkStarted) {
+                    streamText.textContent += "\n💭 Düşünüyor: ";
+                    streamText.dataset.thinkStarted = "1";
+                }
+                streamText.textContent += content;
+                streamText.scrollTop = streamText.scrollHeight;
+            }
+        }
+        // Stream (asıl yanıt) verilerini rapor preview'a yaz
+        if (line.includes("[STREAM]")) {
+            const streamText = document.getElementById("report-stream-text");
+            if (streamText) {
+                // Think bittiyse ayraç ekle
+                if (streamText.dataset.thinkStarted && !streamText.dataset.streamStarted) {
+                    streamText.textContent += "\n\n═══ AI YANITI ═══\n";
+                    streamText.dataset.streamStarted = "1";
+                }
+                const content = line.split("[STREAM] ")[1] || "";
+                streamText.textContent += content;
                 streamText.scrollTop = streamText.scrollHeight;
             }
         }
@@ -1120,7 +1130,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const streamText = document.getElementById("report-stream-text");
             if (streamText) {
                 const content = line.split("[PROMPT] ")[1] || "";
-                streamText.textContent += "\n═══ GÖNDERİLEN PROMPT ═══\n" + content + "\n\n═══ AI YANITI ═══\n";
+                streamText.textContent += "\n📤 Prompt gönderildi (" + content.length + " karakter)\n";
             }
         }
         // Teknik verileri göster
