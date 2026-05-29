@@ -21,8 +21,9 @@ def start_server():
     print(f"Sunucu başlatıldı (PID: {process.pid})")
     return process
 
-def stop_server():
+def stop_server(force=False):
     """Çalışan sunucuyu durdurur"""
+    sig = signal.SIGKILL if force else signal.SIGTERM
     try:
         result = subprocess.run(
             ["pgrep", "-f", "uvicorn backend.main:app"],
@@ -33,8 +34,11 @@ def stop_server():
             pids = result.stdout.strip().split("\n")
             for pid in pids:
                 if pid:
-                    os.killpg(os.getpgid(int(pid)), signal.SIGTERM)
-                    print(f"Sunucu durduruldu (PID: {pid})")
+                    try:
+                        os.killpg(os.getpgid(int(pid)), sig)
+                    except ProcessLookupError:
+                        os.kill(int(pid), sig)
+                    print(f"Sunucu durduruldu (PID: {pid}){' [FORCE]' if force else ''}")
         else:
             print("Çalışan sunucu bulunamadı.")
     except Exception as e:
@@ -51,12 +55,14 @@ def main():
         start_server()
     elif command == "stop":
         stop_server()
+    elif command == "forcestop":
+        stop_server(force=True)
     elif command == "restart":
         stop_server()
         time.sleep(1)
         start_server()
     else:
-        print("Geçersiz komut. Kullanım: python run.py [start|stop|restart]")
+        print("Geçersiz komut. Kullanım: python run.py [start|stop|forcestop|restart]")
 
 if __name__ == "__main__":
     main()
