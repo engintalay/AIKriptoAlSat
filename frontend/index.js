@@ -191,6 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             renderScannerTable();
             renderBacktestHistory();
+            if (window.innerWidth <= 768) renderSignalsTable();
             
             // Eğer ilk yükleme ise ve henüz coin seçilmemişse listedeki 1. coini seçelim
             if (!selectedCoin && allCoins.length > 0) {

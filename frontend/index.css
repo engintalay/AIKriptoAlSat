@@ -1632,9 +1632,16 @@ body::after {
         padding: 8px;
     }
     .app-main-layout {
-        padding: 8px;
-        gap: 8px;
+        display: none;
     }
+    .app-footer-backtest {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+    .backtest-cards-wrapper { display: none; }
+    .backtest-table-wrapper { display: block !important; }
+    .backtest-table-wrapper.hidden { display: block !important; }
     .panel-header {
         flex-direction: column;
         gap: 8px;
