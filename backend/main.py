@@ -183,17 +183,6 @@ def _run_scan_sync():
 
     print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
     
-    # Değişiklik tespiti: sadece STRONG sinyal değişimlerinde bildirim
-    from backend.ai_logger import ai_log
-    old_coins = {c["symbol"]: c.get("signal", "HOLD") for c in get_scanned_coins()}
-    for coin in scanned_results:
-        sym = coin["symbol"]
-        new_sig = coin["signal"]
-        if sym not in old_coins and "STRONG" in new_sig:
-            ai_log("SIGNAL", f"Yeni coin: {sym} ({new_sig})")
-        elif sym in old_coins and "STRONG" in new_sig and "STRONG" not in old_coins[sym]:
-            ai_log("SIGNAL", f"{sym} → {new_sig}")
-    
     save_scanned_coins(scanned_results)
     check_pending_signals(scanned_results)
     return scanned_results
