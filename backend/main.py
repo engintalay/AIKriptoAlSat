@@ -369,7 +369,11 @@ async def get_coin_report(symbol: str, refresh: bool = False):
             details = {}
     if not isinstance(details, dict):
         details = {}
-        details = {}
+    # Details boşsa coin_data'dan temel değerleri doldur
+    if not details.get("rsi"):
+        details["rsi"] = coin_data.get("rsi", 50)
+        details["macd"] = coin_data.get("macd_val", 0)
+        details["macd_signal"] = coin_data.get("macd_sig", 0)
     
     # Teknik verileri logla (AI'ya göndermeden önce ekranda göster)
     from backend.ai_logger import ai_log
