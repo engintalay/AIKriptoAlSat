@@ -1298,11 +1298,13 @@ document.addEventListener("DOMContentLoaded", () => {
     btnCloseLog.addEventListener("click", () => logPanel.classList.add("hidden"));
     btnClearLog.addEventListener("click", () => { logContent.innerHTML = ""; });
 
-    // SSE bağlantısı
-    const logSource = new EventSource("/api/ai/logs");
-    logSource.onmessage = (e) => {
-        const line = e.data;
-        let cls = "";
+    // SSE bağlantısı (kopunca yeniden bağlan)
+    let logSource = null;
+    function connectSSE() {
+        logSource = new EventSource("/api/ai/logs");
+        logSource.onmessage = (e) => {
+            const line = e.data;
+            let cls = "";
         if (line.includes("[SEND]")) cls = "log-send";
         else if (line.includes("[PROMPT]")) cls = "log-prompt";
         else if (line.includes("[STREAM]")) cls = "log-stream";
@@ -1376,4 +1378,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     };
+        logSource.onerror = () => {
+            logSource.close();
+            setTimeout(connectSSE, 5000); // 5sn sonra yeniden bağlan
+        };
+    }
+    connectSSE();
 });

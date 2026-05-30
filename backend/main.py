@@ -453,7 +453,11 @@ async def ai_logs_sse(request: Request):
         finally:
             unsubscribe(queue)
     
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Connection": "keep-alive"
+    })
 
 # 4. Kripto AI Chat Soru-Cevap
 @app.post("/api/coin/{symbol}/chat")
