@@ -4,3 +4,7 @@ __pycache__/
 .env
 *.db
 *.log
+
+# Test yedekleri ve çıktıları
+*.bak
+test_report.html
