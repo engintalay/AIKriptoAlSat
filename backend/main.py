@@ -90,19 +90,8 @@ def check_pending_signals(scanned_results):
     if not pending:
         return
     
-    # Tarama sonuçlarından fiyat haritası oluştur
+    # Sadece tarama sonuçlarındaki fiyatlarla kontrol et (ekstra API çağrısı yok)
     prices = {c["symbol"]: c["price"] for c in scanned_results}
-    
-    # Taramada olmayan coinler için fiyat çek (top pairs'ten)
-    missing_symbols = [s["symbol"] for s in pending if s["symbol"] not in prices]
-    if missing_symbols:
-        try:
-            all_pairs = data_fetcher.fetch_top_usdt_pairs(limit=200)
-            for p in all_pairs:
-                if p["symbol"] in missing_symbols:
-                    prices[p["symbol"]] = p["price"]
-        except:
-            pass
     
     for sig in pending:
         symbol = sig["symbol"]
@@ -153,15 +142,10 @@ async def run_scan():
     def scan_single_coin(pair):
         """Tek bir coin için OHLCV çek ve analiz et."""
         symbol = pair["symbol"]
-        # 6 aydan kısa süredir listelenen coinleri ele (günlük mum < 180 ise atla)
-        df_daily = data_fetcher.fetch_ohlcv(symbol, interval="1d", limit=180)
-        if df_daily is None or len(df_daily) < 180:
-            return None
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
-        if df is not None:
+        if df is not None and len(df) >= 50:
             return analyzer.analyze_coin_status(df, pair, btc_dominance=btc_dom)
-        else:
-            return None
+        return None
     
     # Paralel tarama (max 5 thread)
     with ThreadPoolExecutor(max_workers=5) as executor:

@@ -157,6 +157,8 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
                 continue
         
         print(f"[DEBUG] KuCoin'den {len(usdt_pairs)} USDT çifti filtrelendi")
+        # Min 1M USDT hacim filtresi (düşük hacimli/yeni coinleri ele)
+        usdt_pairs = [p for p in usdt_pairs if p["volume"] >= 1_000_000]
         # Hacme göre azalan sırala ve ilk LIMIT adet coini al
         usdt_pairs.sort(key=lambda x: x["volume"], reverse=True)
         result = usdt_pairs[:limit]
