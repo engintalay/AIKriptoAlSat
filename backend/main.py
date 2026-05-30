@@ -125,7 +125,12 @@ def check_pending_signals(scanned_results):
 # 1. Kripto Tarayıcı Tetikleme ve Listeleme
 
 async def run_scan():
-    """Tarama mantığı — hem endpoint hem background task tarafından kullanılır."""
+    """Tarama mantığı — executor'da çalıştırılır."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _run_scan_sync)
+
+def _run_scan_sync():
+    """Tarama mantığı (senkron)."""
     exchange = config.get_setting('EXCHANGE', 'Binance').upper()
     print(f"Yeni tarama işlemi başlatılıyor ({exchange} API'den canlı çekim)...")
     limit = int(config.get_setting("TOP_COINS_LIMIT", 50))
