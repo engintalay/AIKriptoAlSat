@@ -937,6 +937,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Sinyal CSV Export
+    document.getElementById("btn-export-signals").addEventListener("click", async () => {
+        const res = await fetch("/api/signals");
+        const signals = await res.json();
+        if (!signals.length) return;
+        const header = "Symbol,Type,Entry,Closed,SL,TP1,TP2,Status,PnL,PnL%,Created,Closed_At\n";
+        const rows = signals.map(s => `${s.symbol},${s.type},${s.entry_price},${s.closed_price||''},${s.stop_loss},${s.take_profit_1},${s.take_profit_2},${s.status},${s.pnl||0},${s.pnl_pct||0},${s.created_at||''},${s.closed_at||''}`).join("\n");
+        const blob = new Blob([header + rows], {type: "text/csv"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `sinyal_gecmisi_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    });
+
     // Sinyal görünüm toggle (kart/tablo)
     const cardsContainer = document.getElementById("backtest-cards-container");
     const tableContainer = document.getElementById("backtest-table-container");
