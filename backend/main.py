@@ -153,16 +153,15 @@ async def run_scan():
     def scan_single_coin(pair):
         """Tek bir coin için OHLCV çek ve analiz et."""
         symbol = pair["symbol"]
+        # 6 aydan kısa süredir listelenen coinleri ele (günlük mum < 180 ise atla)
+        df_daily = data_fetcher.fetch_ohlcv(symbol, interval="1d", limit=180)
+        if df_daily is None or len(df_daily) < 180:
+            return None
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
         if df is not None:
             return analyzer.analyze_coin_status(df, pair, btc_dominance=btc_dom)
         else:
-            return {
-                "symbol": symbol, "price": pair["price"], "volume": pair["volume"],
-                "change_24h": pair["change_24h"], "rsi": 50.0, "macd_val": 0.0,
-                "macd_sig": 0.0, "signal": "HOLD", "ai_score": 50,
-                "details": {"reasons": ["Saatlik mum verisi çekilemedi."]}
-            }
+            return None
     
     # Paralel tarama (max 5 thread)
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -170,7 +169,8 @@ async def run_scan():
         for future in as_completed(futures):
             try:
                 result = future.result(timeout=30)
-                scanned_results.append(result)
+                if result:
+                    scanned_results.append(result)
             except Exception as e:
                 pair = futures[future]
                 print(f"[DEBUG] {pair['symbol']} tarama hatası: {e}")
