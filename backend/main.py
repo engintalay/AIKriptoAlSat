@@ -360,24 +360,19 @@ async def get_coin_report(symbol: str, refresh: bool = False):
         df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
         coin_data = analyzer.analyze_coin_status(df, pair)
         
-    # Detay parametreleri çöz
-    details = coin_data.get("details")
-    if isinstance(details, str):
-        try:
-            details = json.loads(details)
-        except Exception:
-            details = {}
+    # Detay parametreleri çöz — her zaman güncel hesapla
+    details = {}
+    try:
+        df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
+        if df is not None and len(df) >= 50:
+            fresh = analyzer.analyze_coin_status(df, coin_data)
+            details = fresh.get("details", {})
+            if isinstance(details, str):
+                details = json.loads(details)
+    except:
+        pass
     if not isinstance(details, dict):
         details = {}
-    # Details eksikse güncel hesapla
-    if not details.get("ema_50"):
-        try:
-            df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
-            if df is not None and len(df) >= 50:
-                fresh = analyzer.analyze_coin_status(df, coin_data)
-                details = fresh.get("details", details)
-        except:
-            pass
     
     # Teknik verileri logla (AI'ya göndermeden önce ekranda göster)
     from backend.ai_logger import ai_log
