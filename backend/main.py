@@ -28,6 +28,10 @@ app = FastAPI(
     description="Yapay Zeka Destekli Kripto Para Analiz ve Tarama API'si"
 )
 
+# Ayrı thread pool'lar — birbirini bloklamaması için
+_scan_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="scan")
+_ai_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ai")
+
 # CORS Ayarları
 app.add_middleware(
     CORSMiddleware,
@@ -127,7 +131,7 @@ def check_pending_signals(scanned_results):
 async def run_scan():
     """Tarama mantığı — executor'da çalıştırılır."""
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _run_scan_sync)
+    return await loop.run_in_executor(_scan_pool, _run_scan_sync)
 
 def _run_scan_sync():
     """Tarama mantığı (senkron)."""
@@ -230,7 +234,7 @@ async def scan_market(force: bool = False):
 async def refresh_coin(symbol: str):
     """Tek bir coinin fiyat ve teknik verilerini günceller."""
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, lambda: _refresh_coin_sync(symbol))
+    result = await loop.run_in_executor(_scan_pool, lambda: _refresh_coin_sync(symbol))
     if result is None:
         raise HTTPException(status_code=404, detail=f"{symbol} verisi çekilemedi.")
     return result
@@ -382,7 +386,7 @@ async def get_coin_report(symbol: str, refresh: bool = False):
     print(f"{symbol} için AI Al-Sat Raporu hazırlanıyor...")
     ai_agent.reset_abort()
     report = await asyncio.get_event_loop().run_in_executor(
-        ThreadPoolExecutor(max_workers=1),
+        _ai_pool,
         lambda: ai_agent.generate_ai_report(
         symbol=symbol,
         price=coin_data["price"],
