@@ -133,7 +133,7 @@ def generate_ollama_report(symbol, price, change_24h, score, signal, details):
             "format": "json",
             "stream": False
         }
-        response = requests.post(url, json=payload, timeout=(10, 300))
+        response = requests.post(url, json=payload, timeout=(5, 120))
         if response.status_code == 200:
             result = response.json()
             report_text = result.get("response", "")
@@ -212,7 +212,7 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
         ai_log("PROMPT", f"[{symbol}] {prompt}")
         collected = ""
         in_think = False
-        with requests.post(url, json=payload, timeout=(10, 300), stream=True) as response:
+        with requests.post(url, json=payload, timeout=(5, 120), stream=True) as response:
             response.encoding = "utf-8"
             if response.status_code == 200:
                 buffer = b""
@@ -268,7 +268,7 @@ def generate_llamacpp_report(symbol, price, change_24h, score, signal, details):
             "stream": True
         }
         collected = ""
-        with requests.post(url, json=payload, timeout=(10, 300), stream=True) as response:
+        with requests.post(url, json=payload, timeout=(5, 120), stream=True) as response:
             if response.status_code == 200:
                 for chunk in response.iter_lines():
                     if is_aborted():
@@ -404,7 +404,7 @@ def chat_with_ollama(symbol, price, signal, score, chat_history, user_message):
             "messages": messages,
             "stream": False
         }
-        response = requests.post(url, json=payload, timeout=(10, 300))
+        response = requests.post(url, json=payload, timeout=(5, 120))
         if response.status_code == 200:
             result = response.json()
             return result.get("message", {}).get("content", "Yanıt alınamadı.")
@@ -455,7 +455,7 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
         ai_log("PROMPT", f"[{symbol}] Kullanıcı: {user_message}")
         collected = ""
         in_think = False
-        with requests.post(url, json=payload, timeout=(10, 300), stream=True) as response:
+        with requests.post(url, json=payload, timeout=(5, 120), stream=True) as response:
             response.encoding = "utf-8"
             if response.status_code == 200:
                 buffer = b""
@@ -513,7 +513,7 @@ def chat_with_llamacpp(symbol, price, signal, score, chat_history, user_message)
             "stop": ["Kullanıcı:", "Analist:"]
         }
         collected = ""
-        with requests.post(url, json=payload, timeout=(10, 300), stream=True) as response:
+        with requests.post(url, json=payload, timeout=(5, 120), stream=True) as response:
             if response.status_code == 200:
                 for chunk in response.iter_lines():
                     if is_aborted():

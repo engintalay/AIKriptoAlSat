@@ -25,7 +25,7 @@ def start_server():
                     break
 
     process = subprocess.Popen(
-        [VENV_PYTHON, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", port, "--reload"],
+        [VENV_PYTHON, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", port, "--workers", "2"],
         preexec_fn=os.setsid
     )
     print(f"Sunucu başlatıldı (PID: {process.pid})")

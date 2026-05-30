@@ -35,7 +35,7 @@ def fetch_top_usdt_pairs_binance(limit=50):
     """
     url = f"{BINANCE_BASE_URL}/api/v3/ticker/24hr"
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         if response.status_code != 200:
             print(f"Binance API hatası: {response.status_code}")
             return []
@@ -93,7 +93,7 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
     url = f"{KUCOIN_BASE_URL}/api/v1/market/allTickers"
     print(f"[DEBUG] KuCoin API çağrısı: {url}")
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         print(f"[DEBUG] KuCoin API response status: {response.status_code}")
         if response.status_code != 200:
             print(f"KuCoin API hatası: {response.status_code}")
@@ -298,7 +298,7 @@ def fetch_btc_dominance():
         return _btc_dom_cache
     try:
         url = "https://api.coingecko.com/api/v3/global"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             _btc_dom_cache = data["data"]["market_cap_percentage"].get("btc", 50.0)
@@ -322,7 +322,7 @@ def fetch_fear_greed():
         return _fear_greed_cache
     try:
         url = "https://api.alternative.me/fng/?limit=1"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             entry = data["data"][0]
