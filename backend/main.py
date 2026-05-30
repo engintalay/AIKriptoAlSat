@@ -369,11 +369,15 @@ async def get_coin_report(symbol: str, refresh: bool = False):
             details = {}
     if not isinstance(details, dict):
         details = {}
-    # Details boşsa coin_data'dan temel değerleri doldur
-    if not details.get("rsi"):
-        details["rsi"] = coin_data.get("rsi", 50)
-        details["macd"] = coin_data.get("macd_val", 0)
-        details["macd_signal"] = coin_data.get("macd_sig", 0)
+    # Details eksikse güncel hesapla
+    if not details.get("ema_50"):
+        try:
+            df = data_fetcher.fetch_ohlcv(symbol, interval="1h", limit=100)
+            if df is not None and len(df) >= 50:
+                fresh = analyzer.analyze_coin_status(df, coin_data)
+                details = fresh.get("details", details)
+        except:
+            pass
     
     # Teknik verileri logla (AI'ya göndermeden önce ekranda göster)
     from backend.ai_logger import ai_log
