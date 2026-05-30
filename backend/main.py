@@ -93,6 +93,17 @@ def check_pending_signals(scanned_results):
     # Tarama sonuçlarından fiyat haritası oluştur
     prices = {c["symbol"]: c["price"] for c in scanned_results}
     
+    # Taramada olmayan coinler için fiyat çek (top pairs'ten)
+    missing_symbols = [s["symbol"] for s in pending if s["symbol"] not in prices]
+    if missing_symbols:
+        try:
+            all_pairs = data_fetcher.fetch_top_usdt_pairs(limit=200)
+            for p in all_pairs:
+                if p["symbol"] in missing_symbols:
+                    prices[p["symbol"]] = p["price"]
+        except:
+            pass
+    
     for sig in pending:
         symbol = sig["symbol"]
         current_price = prices.get(symbol)
@@ -168,11 +179,9 @@ async def run_scan():
     for analysis in scanned_results:
         if analysis["signal"] in ["STRONG BUY", "STRONG SELL"]:
             symbol = analysis["symbol"]
-            recent_signals = get_signals(limit=10)
-            already_exists = any(
-                s["symbol"] == symbol and s["type"] == ("BUY" if "BUY" in analysis["signal"] else "SELL")
-                for s in recent_signals
-            )
+            # Aynı coin için zaten açık (PENDING) sinyal varsa tekrar ekleme
+            pending = get_pending_signals()
+            already_exists = any(s["symbol"] == symbol for s in pending)
             if not already_exists:
                 entry = analysis["price"]
                 is_buy = "BUY" in analysis["signal"]
@@ -185,16 +194,16 @@ async def run_scan():
 
     print(f"[DEBUG] Toplam {len(scanned_results)} coin tarandı")
     
-    # Değişiklik tespiti: yeni coin veya sinyal değişimi
+    # Değişiklik tespiti: sadece STRONG sinyal değişimlerinde bildirim
     from backend.ai_logger import ai_log
     old_coins = {c["symbol"]: c.get("signal", "HOLD") for c in get_scanned_coins()}
     for coin in scanned_results:
         sym = coin["symbol"]
         new_sig = coin["signal"]
-        if sym not in old_coins:
+        if sym not in old_coins and "STRONG" in new_sig:
             ai_log("SIGNAL", f"Yeni coin: {sym} ({new_sig})")
-        elif old_coins[sym] != new_sig:
-            ai_log("SIGNAL", f"Sinyal değişti: {sym} {old_coins[sym]} → {new_sig}")
+        elif sym in old_coins and "STRONG" in new_sig and "STRONG" not in old_coins[sym]:
+            ai_log("SIGNAL", f"{sym} → {new_sig}")
     
     save_scanned_coins(scanned_results)
     check_pending_signals(scanned_results)
