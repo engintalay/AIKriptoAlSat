@@ -1254,6 +1254,9 @@ document.addEventListener("DOMContentLoaded", () => {
         loadChartData();
     }, 30000);
 
+    // Sinyal geçmişi her 60 saniyede güncelle
+    setInterval(() => { renderBacktestHistory(); }, 60000);
+
     // ==========================================================================
     // AI LOG PANELİ
     // MOBİL MENÜ
