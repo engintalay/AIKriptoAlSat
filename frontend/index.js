@@ -917,6 +917,18 @@ document.addEventListener("DOMContentLoaded", () => {
         runMarketScan(true);
     });
 
+    // CSV Export
+    document.getElementById("btn-export-coins").addEventListener("click", () => {
+        if (!allCoins.length) return;
+        const header = "Symbol,Price,Change24h,RSI,MACD,Signal,AI_Score\n";
+        const rows = allCoins.map(c => `${c.symbol},${c.price},${c.change_24h},${c.rsi?.toFixed(2)},${c.macd_val?.toFixed(6)},${c.signal},${c.ai_score}`).join("\n");
+        const blob = new Blob([header + rows], {type: "text/csv"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `kripto_tarama_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    });
+
     // Reset Signals butonu
     document.getElementById("btn-reset-signals").addEventListener("click", async () => {
         if (confirm("Tüm sinyal geçmişi silinecek. Emin misiniz?")) {
