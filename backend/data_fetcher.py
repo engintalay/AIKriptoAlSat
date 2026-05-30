@@ -111,7 +111,7 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
         # - Sadece USDT çiftleri
         # - Leveraged tokenları hariç
         usdt_pairs = []
-        exclude_keywords = ["UP", "DOWN", "HALF", "DOUBLE", "BEAR", "BULL"]
+        exclude_keywords = ["UP", "DOWN", "HALF", "DOUBLE", "BEAR", "BULL", "USDC", "TUSD", "FDUSD", "BUSD", "DAI", "UST", "USDP", "PYUSD"]
         
         for item in tickers:
             symbol = item["symbol"]
