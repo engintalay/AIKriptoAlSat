@@ -998,7 +998,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const signals = await res.json();
         const tbody = document.getElementById("signals-table-body");
         if (!signals || signals.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--text-secondary)">Sinyal yok</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--text-secondary)">Sinyal yok</td></tr>`;
             return;
         }
         tbody.innerHTML = signals.map((sig, idx) => {
@@ -1007,7 +1007,6 @@ document.addEventListener("DOMContentLoaded", () => {
             let directionBadge = "";
             let currentPriceDisplay = "";
             if (sig.status === "PENDING") {
-                // Backend'ten gelen pnl_pct ve current_price kullan
                 const pnlPct = (sig.pnl_pct || 0).toFixed(2);
                 const pnlSign = sig.pnl_pct >= 0 ? '+' : '';
                 directionBadge = `<span class="live-pnl" style="color:${sig.pnl_pct >= 0 ? '#00e676' : '#ff3d00'}">${pnlSign}${pnlPct}%</span>`;
@@ -1029,6 +1028,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${statusMap[sig.status] || sig.status} ${directionBadge}</td>
                 <td class="${pnlClass}">${sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`}</td>
                 <td>${new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                <td>${sig.closed_at ? new Date(sig.closed_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-"}</td>
             </tr>`;
         }).join("");
     }
