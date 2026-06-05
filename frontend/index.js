@@ -1003,26 +1003,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         tbody.innerHTML = signals.map((sig, idx) => {
             const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
-            const pnlText = sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`;
             
-            // LIVE TRACKING: Kar/zarar yönü
             let directionBadge = "";
             let currentPriceDisplay = "";
             if (sig.status === "PENDING") {
-                // ŞİMDİ KAPATSAK NE KAR/ZARAR?
-                const isBuy = sig.type === "BUY";
-                const currentPrice = sig.current_price || sig.entry_price;
-                let pnlPct = 0;
-                if (isBuy) {
-                    pnlPct = ((currentPrice - sig.entry_price) / sig.entry_price) * 100;
-                } else {
-                    pnlPct = ((sig.entry_price - currentPrice) / sig.entry_price) * 100;
-                }
-                const pnl = (sig.investment * pnlPct / 100).toFixed(2);
-                const pnlStr = pnlPct >= 0 ? `+${pnlPct.toFixed(2)}%` : `${pnlPct.toFixed(2)}%`;
-                const pnlVal = `+${pnl}$`.replace("+-", "-");
-                directionBadge = `<span class="live-pnl" style="color:${pnlPct >= 0 ? '#00e676' : '#ff3d00'}">${pnlStr}</span>`;
-                currentPriceDisplay = `<span style="font-size:11px">Şimdi: $${formatPrice(currentPrice)}</span>`;
+                // Backend'ten gelen pnl_pct ve current_price kullan
+                const pnlPct = (sig.pnl_pct || 0).toFixed(2);
+                const pnlSign = sig.pnl_pct >= 0 ? '+' : '';
+                directionBadge = `<span class="live-pnl" style="color:${sig.pnl_pct >= 0 ? '#00e676' : '#ff3d00'}">${pnlSign}${pnlPct}%</span>`;
+                currentPriceDisplay = `<span style="font-size:11px">Şimdi: $${formatPrice(sig.current_price || sig.entry_price)}</span>`;
             }
             
             const statusMap = { "PENDING": "⏳", "TP1_HIT": "🎯 TP1", "TP2_HIT": "🚀 TP2", "SL_HIT": "🛑 SL" };
@@ -1038,7 +1027,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>$${formatPrice(sig.take_profit_1)}</td>
                 <td>$${formatPrice(sig.take_profit_2)}</td>
                 <td>${statusMap[sig.status] || sig.status} ${directionBadge}</td>
-                <td class="${pnlClass}">${pnlText}</td>
+                <td class="${pnlClass}">${sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`}</td>
                 <td>${new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
             </tr>`;
         }).join("");
