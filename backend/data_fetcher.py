@@ -114,10 +114,13 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
         exclude_keywords = ["UP", "DOWN", "HALF", "DOUBLE", "BEAR", "BULL", "USDC", "TUSD", "FDUSD", "BUSD", "DAI", "UST", "USDP", "PYUSD"]
         
         for item in tickers:
-            symbol = item["symbol"]
-            # KuCoin formatı: BTC-USDT (not /USDT!)
-            if not symbol.endswith("-USDT"):
-                continue
+            try:
+                symbol = item.get("symbol")
+                if not symbol or not isinstance(symbol, str):
+                    continue
+                # KuCoin formatı: BTC-USDT (not /USDT!)
+                if not symbol.endswith("-USDT"):
+                    continue
             
             # Leveraged tokenları hariç
             is_ignored = False
@@ -131,13 +134,13 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
             
             try:
                 # KuCoin'den volume bilgisi gelmiyor, priceChangePercent'i kullan
-                base_volume = float(item.get("vol", 0))  # Base coin cinsinden hacim
-                price = float(item.get("last", 0))
+                base_volume = float(item.get("vol") or 0)  # Base coin cinsinden hacim
+                price = float(item.get("last") or 0)
                 # Approximate USDT volume
                 usdt_volume = base_volume * price
                 
                 # changeRate veya priceChangePercent'i kullan (string olabilir)
-                change_rate_str = item.get("changeRate", "0")
+                change_rate_str = item.get("changeRate") or "0"
                 try:
                     change_pct = float(change_rate_str) * 100
                 except ValueError:
@@ -149,10 +152,10 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
                     "price": price,
                     "change_24h": change_pct,
                     "volume": usdt_volume,
-                    "high_24h": float(item.get("high", 0)),
-                    "low_24h": float(item.get("low", 0))
+                    "high_24h": float(item.get("high") or 0),
+                    "low_24h": float(item.get("low") or 0)
                 })
-            except (ValueError, KeyError) as e:
+            except (ValueError, KeyError, TypeError) as e:
                 print(f"KuCoin parse hatası: {e}, item: {item.get('symbol', 'unknown')}")
                 continue
         
@@ -166,6 +169,8 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
         return result
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"KuCoin hacimli coinleri çekerken hata: {e}")
         return []
 
