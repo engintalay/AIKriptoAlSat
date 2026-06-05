@@ -501,7 +501,7 @@ async def get_all_favorites():
 @app.get("/api/signals")
 async def get_trading_signals():
     """AI tarafından üretilen sinyallerin listesini P&L ile döner."""
-    signals = get_signals(limit=50)
+    signals = get_signals(limit=10000)
     amount = float(config.get_setting("BACKTEST_AMOUNT", "1000"))
     
     # Tarama sonuçlarını al - live tracking için
