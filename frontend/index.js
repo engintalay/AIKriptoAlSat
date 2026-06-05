@@ -1026,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>$${formatPrice(sig.take_profit_1)}</td>
                 <td>$${formatPrice(sig.take_profit_2)}</td>
                 <td>${statusMap[sig.status] || sig.status} ${directionBadge}</td>
-                <td class="${pnlClass}">${sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`}</td>
+                <td class="${pnlClass}">${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)</td>
                 <td>${new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
                 <td>${sig.closed_at ? new Date(sig.closed_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-"}</td>
             </tr>`;
