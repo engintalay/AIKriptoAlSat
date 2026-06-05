@@ -504,15 +504,63 @@ async def get_trading_signals():
     signals = get_signals(limit=50)
     amount = float(config.get_setting("BACKTEST_AMOUNT", "1000"))
     
+    # Tarama sonuçlarını al - live tracking için
+    try:
+        scanned_coins = data_fetcher.fetch_top_usdt_pairs(limit=100)
+        prices = {c["symbol"]: c["price"] for c in scanned_coins}
+    except:
+        prices = {}
+    
     for sig in signals:
         sig["investment"] = amount
+        
+        # Karşılaştırılacak fiyat: closed_price varsa onu, yoksa güncel fiyatı
+        is_buy = sig["type"] == "BUY"
         if sig["status"] == "PENDING":
-            sig["pnl"] = 0
-            sig["pnl_pct"] = 0
+            current_price = prices.get(sig["symbol"], sig["entry_price"])
+            
+            # LIVE TRACKING: Kar/zarar durumu
+            if is_buy:
+                # BUY pozisyon: Fiyat SL'in altındaysa SL yönünde, TP1/TP2'nin üstündeyse kar yönünde
+                if current_price <= sig["stop_loss"]:
+                    sig["pnl_pct"] = -100  # SL vurmuş say
+                    sig["live_direction"] = "DOWN"  # SL'ye doğru
+                elif current_price >= sig["take_profit_2"]:
+                    sig["pnl_pct"] = ((current_price - sig["entry_price"]) / sig["entry_price"]) * 100
+                    sig["live_direction"] = "UP2"  # TP2'ye doğru (tam kar)
+                elif current_price >= sig["take_profit_1"]:
+                    sig["pnl_pct"] = ((current_price - sig["entry_price"]) / sig["entry_price"]) * 100
+                    sig["live_direction"] = "UP1"  # TP1'e doğru
+                else:
+                    # Hala SL ve TP1 arasında - pozisyonun yönüne bak
+                    if current_price > sig["entry_price"]:
+                        sig["live_direction"] = "UP"
+                    else:
+                        sig["live_direction"] = "DOWN"
+                    sig["pnl_pct"] = ((current_price - sig["entry_price"]) / sig["entry_price"]) * 100
+            else:
+                # SELL pozisyon
+                if current_price >= sig["stop_loss"]:
+                    sig["pnl_pct"] = -100
+                    sig["live_direction"] = "UP"
+                elif current_price <= sig["take_profit_2"]:
+                    sig["pnl_pct"] = ((sig["entry_price"] - current_price) / sig["entry_price"]) * 100
+                    sig["live_direction"] = "DOWN2"
+                elif current_price <= sig["take_profit_1"]:
+                    sig["pnl_pct"] = ((sig["entry_price"] - current_price) / sig["entry_price"]) * 100
+                    sig["live_direction"] = "DOWN1"
+                else:
+                    if current_price < sig["entry_price"]:
+                        sig["live_direction"] = "DOWN"
+                    else:
+                        sig["live_direction"] = "UP"
+                    sig["pnl_pct"] = ((sig["entry_price"] - current_price) / sig["entry_price"]) * 100
+            
+            sig["pnl"] = round(amount * sig["pnl_pct"] / 100, 2)
+            sig["current_price"] = current_price
         else:
             entry = sig["entry_price"]
             closed = sig.get("closed_price") or entry
-            is_buy = sig["type"] == "BUY"
             if is_buy:
                 pnl_pct = (closed - entry) / entry * 100
             else:

@@ -682,9 +682,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.className = `sig-card ${sig.status}`;
                 
                 let statusText = "⏳ BEKLEMEDE";
+                let directionBadge = "";
+                
                 if (sig.status === "TP1_HIT") statusText = "🎯 TP1";
                 else if (sig.status === "TP2_HIT") statusText = "🚀 TP2";
                 else if (sig.status === "SL_HIT") statusText = "🛑 STOP";
+                else if (sig.status === "PENDING") {
+                    // LIVE TRACKING
+                    if (sig.live_direction === "DOWN" || sig.live_direction === "DOWN1" || sig.live_direction === "DOWN2") {
+                        directionBadge = '<span class="live-dir-indicator" style="color:#ff3d00">⬇️ SL</span>';
+                    } else if (sig.live_direction === "UP1") {
+                        directionBadge = '<span class="live-dir-indicator" style="color:#00e676">⬆️ TP1</span>';
+                    } else if (sig.live_direction === "UP2") {
+                        directionBadge = '<span class="live-dir-indicator" style="color:#00e676">⬆️ TP2</span>';
+                    } else if (sig.live_direction === "UP") {
+                        directionBadge = '<span class="live-dir-indicator" style="color:#2979ff">⬆️ Kar</span>';
+                    } else {
+                        directionBadge = '<span class="live-dir-indicator" style="color:#ffab00">➡️ Bekle</span>';
+                    }
+                }
                 
                 const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
                 const pnlText = sig.status === "PENDING" ? "" : `<span class="${pnlClass}">${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct >= 0 ? '+' : ''}${sig.pnl_pct}%)</span>`;
@@ -694,6 +710,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="sig-card-header">
                         <span class="sig-card-sym">${sig.symbol.replace("USDT", "")}</span>
                         <span class="sig-card-type ${sig.type.toLowerCase()}">${sig.type === "BUY" ? "LONG" : "SHORT"}</span>
+                        ${directionBadge}
                     </div>
                     <div class="sig-card-prices">
                         <span>$${formatPrice(sig.entry_price)} ${closedText}</span>
@@ -981,27 +998,58 @@ document.addEventListener("DOMContentLoaded", () => {
         const signals = await res.json();
         const tbody = document.getElementById("signals-table-body");
         if (!signals || signals.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-secondary)">Sinyal yok</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--text-secondary)">Sinyal yok</td></tr>`;
             return;
         }
         tbody.innerHTML = signals.map(sig => {
             const pnlClass = sig.pnl >= 0 ? "pnl-positive" : "pnl-negative";
             const pnlText = sig.status === "PENDING" ? "-" : `${sig.pnl >= 0 ? '+' : ''}$${sig.pnl.toFixed(1)} (${sig.pnl_pct}%)`;
-            const statusMap = { "PENDING": "⏳", "TP1_HIT": "🎯 TP1", "TP2_HIT": "🚀 TP2", "SL_HIT": "🛑 SL" };
-            const fmtDate = (d) => d ? new Date(d).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
-            return `<tr>
-                <td><b>${sig.symbol.replace("USDT","")}</b></td>
-                <td class="${sig.type === 'BUY' ? 'pnl-positive' : 'pnl-negative'}">${sig.type === "BUY" ? "LONG" : "SHORT"}</td>
-                <td>$${formatPrice(sig.entry_price)}</td>
-                <td>${sig.closed_price ? '$' + formatPrice(sig.closed_price) : '-'}</td>
-                <td>$${formatPrice(sig.stop_loss)}</td>
-                <td>$${formatPrice(sig.take_profit_1)}</td>
-                <td>$${formatPrice(sig.take_profit_2)}</td>
-                <td>${statusMap[sig.status] || sig.status}</td>
-                <td class="${pnlClass}">${pnlText}</td>
-                <td>${fmtDate(sig.created_at)}</td>
-                <td>${fmtDate(sig.closed_at)}</td>
-            </tr>`;
+            
+            // LIVE TRACKING: Kar/zarar yönü
+            let directionBadge = "";
+            if (sig.status === "PENDING") {
+                if (sig.live_direction === "DOWN" || sig.live_direction === "DOWN1" || sig.live_direction === "DOWN2") {
+                    directionBadge = '<span style="color:#ff3d00">⬇️ SL</span>';
+                } else if (sig.live_direction === "UP1") {
+                    directionBadge = '<span style="color:#00e676">⬆️ TP1</span>';
+                } else if (sig.live_direction === "UP2") {
+                    directionBadge = '<span style="color:#00e676">⬆️ TP2</span>';
+                } else if (sig.live_direction === "UP") {
+                    directionBadge = '<span style="color:#2979ff">⬆️ Kar</span>';
+                } else {
+                    directionBadge = '<span style="color:#ffab00">➡️ Bekle</span>';
+                }
+                // Current price göster
+                const currentPrice = sig.current_price ? `$${formatPrice(sig.current_price)}` : "-";
+                return `<tr data-sig-id="${sig.id}">
+                    <td><b>${sig.symbol.replace("USDT","")}</b></td>
+                    <td class="${sig.type === 'BUY' ? 'pnl-positive' : 'pnl-negative'}">${sig.type === "BUY" ? "LONG" : "SHORT"}</td>
+                    <td>$${formatPrice(sig.entry_price)}</td>
+                    <td>${currentPrice}</td>
+                    <td>$${formatPrice(sig.stop_loss)}</td>
+                    <td>$${formatPrice(sig.take_profit_1)}</td>
+                    <td>$${formatPrice(sig.take_profit_2)}</td>
+                    <td>${directionBadge}</td>
+                    <td class="${pnlClass}">${pnlText}</td>
+                    <td>${new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                </tr>`;
+            } else {
+                const statusMap = { "PENDING": "⏳", "TP1_HIT": "🎯 TP1", "TP2_HIT": "🚀 TP2", "SL_HIT": "🛑 SL" };
+                const closedText = sig.closed_price ? '$' + formatPrice(sig.closed_price) : "-";
+                return `<tr>
+                    <td><b>${sig.symbol.replace("USDT","")}</b></td>
+                    <td class="${sig.type === 'BUY' ? 'pnl-positive' : 'pnl-negative'}">${sig.type === "BUY" ? "LONG" : "SHORT"}</td>
+                    <td>$${formatPrice(sig.entry_price)}</td>
+                    <td>${closedText}</td>
+                    <td>$${formatPrice(sig.stop_loss)}</td>
+                    <td>$${formatPrice(sig.take_profit_1)}</td>
+                    <td>$${formatPrice(sig.take_profit_2)}</td>
+                    <td>${statusMap[sig.status] || sig.status}</td>
+                    <td class="${pnlClass}">${pnlText}</td>
+                    <td>${new Date(sig.created_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                    <td>${sig.closed_at ? new Date(sig.closed_at).toLocaleString("tr-TR", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-"}</td>
+                </tr>`;
+            }
         }).join("");
     }
 
