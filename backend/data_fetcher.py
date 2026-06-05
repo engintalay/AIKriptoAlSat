@@ -121,18 +121,17 @@ def fetch_top_usdt_pairs_kucoin(limit=50):
                 # KuCoin formatı: BTC-USDT (not /USDT!)
                 if not symbol.endswith("-USDT"):
                     continue
-            
-            # Leveraged tokenları hariç
-            is_ignored = False
-            for kw in exclude_keywords:
-                if kw in symbol:
-                    is_ignored = True
-                    break
-            
-            if is_ignored:
-                continue
-            
-            try:
+                
+                # Leveraged tokenları hariç
+                is_ignored = False
+                for kw in exclude_keywords:
+                    if kw in symbol:
+                        is_ignored = True
+                        break
+                
+                if is_ignored:
+                    continue
+                
                 # KuCoin'den volume bilgisi gelmiyor, priceChangePercent'i kullan
                 base_volume = float(item.get("vol") or 0)  # Base coin cinsinden hacim
                 price = float(item.get("last") or 0)
