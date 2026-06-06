@@ -969,7 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="report-advice">
                     <h4>💡 Öneri:</h4>
-                    <p>${report.description || `${report.max_open_positions} pozisyon aynı anda açık olabilir. Bu miktarı ${report.current_budget || 1000}$ ile kaplamak için en az $${report.required_budget:,.0f} bütçe gerekli.`}</p>
+                    <p>${report.description || (report.max_open_positions + " pozisyon aynı anda açık olabilir. Bu miktarı " + (report.current_budget || 1000) + "$ ile kaplamak için en az $" + report.required_budget.toLocaleString("en-US", {minimumFractionDigits: 0}) + " bütçe gerekli.")}</p>
                 </div>
             `;
             document.getElementById("signals-report-modal").classList.remove("hidden");
