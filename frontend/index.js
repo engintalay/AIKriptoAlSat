@@ -954,6 +954,35 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Backtest Raporu butonu
+    document.getElementById("btn-signals-report").addEventListener("click", async () => {
+        try {
+            const res = await fetch("/api/signals/report");
+            const report = await res.json();
+            const content = document.getElementById("signals-report-content");
+            content.innerHTML = `
+                <div class="report-stats">
+                    <div class="stat-box"><span class="stat-label">Toplam İşlem</span><span class="stat-value">${report.total_trades}</span></div>
+                    <div class="stat-box"><span class="stat-label">Kazanma Oranı</span><span class="stat-value ${report.win_rate >= 50 ? 'text-green' : 'text-red'}">${report.win_rate}%</span></div>
+                    <div class="stat-box"><span class="stat-label">Toplam P&L</span><span class="stat-value ${report.total_pnl >= 0 ? 'text-green' : 'text-red'}">${report.total_pnl >= 0 ? '+' : ''}$${report.total_pnl.toFixed(2)}</span></div>
+                    <div class="stat-box"><span class="stat-label">Max Açık Pozisyon</span><span class="stat-value">${report.max_open_positions}</span></div>
+                </div>
+                <div class="report-advice">
+                    <h4>💡 Öneri:</h4>
+                    <p>${report.description || `${report.max_open_positions} pozisyon aynı anda açık olabilir. Bu miktarı ${report.current_budget || 1000}$ ile kaplamak için en az $${report.required_budget:,.0f} bütçe gerekli.`}</p>
+                </div>
+            `;
+            document.getElementById("signals-report-modal").classList.remove("hidden");
+        } catch (err) {
+            console.error("Rapor yüklenemedi:", err);
+        }
+    });
+
+    // Rapor modal kapatma
+    document.getElementById("btn-close-signals-report").addEventListener("click", () => {
+        document.getElementById("signals-report-modal").classList.add("hidden");
+    });
+
     // Sinyal CSV Export
     document.getElementById("btn-export-signals").addEventListener("click", async () => {
         const res = await fetch("/api/signals");

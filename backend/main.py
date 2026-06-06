@@ -576,6 +576,67 @@ async def reset_trading_signals():
     reset_signals()
     return {"status": "ok"}
 
+@app.get("/api/signals/report")
+async def generate_signal_report():
+    """Sinyal geçmişi için geriye dönük backtest raporu üretir."""
+    signals = get_signals(limit=10000)
+    
+    if not signals:
+        return {
+            "total_trades": 0,
+            "win_rate": 0,
+            "total_pnl": 0,
+            "max_open_positions": 0,
+            "required_budget": 0,
+            "avg_win": 0,
+            "avg_loss": 0
+        }
+    
+    # Max açık pozisyon sayısını hesapla
+    # Sinyaller oluşturulma zamanına göre sıralı değil, önce sıralayalım
+    signals_sorted = sorted(signals, key=lambda s: s["created_at"])
+    
+    max_open = 0
+    current_open = 0
+    for sig in signals_sorted:
+        if sig["status"] == "PENDING":
+            current_open += 1
+            max_open = max(max_open, current_open)
+        else:
+            # Pozisyon kapanmış, kalan açık pozisyonları hesapla
+            # Basit yaklaşımla: kalan tüm sinyallerin açık olduğunu varsay
+            pass
+    
+    # Eğer hepsi kapalıysa, max_open = 0 olur, bu durumda 1 alalım
+    if max_open == 0:
+        max_open = 1
+    
+    # Toplam P&L
+    total_pnl = sum(s.get("pnl", 0) for s in signals)
+    wins = [s for s in signals if s.get("status", "").startswith("TP")]
+    losses = [s for s in signals if s.get("status") == "SL_HIT"]
+    
+    avg_win = sum(s.get("pnl", 0) for s in wins) / len(wins) if wins else 0
+    avg_loss = sum(s.get("pnl", 0) for s in losses) / len(losses) if losses else 0
+    
+    win_rate = (len(wins) / len(signals) * 100) if signals else 0
+    
+    # Gereken bütçe = Max açık pozisyon sayısı x Backtest miktarı
+    # Bu, aynı anda açık olabilecek max işlem sayısına göre gereken para
+    current_budget = float(config.get_setting("BACKTEST_AMOUNT", 1000))
+    required_budget = max_open * current_budget
+    
+    return {
+        "total_trades": len(signals),
+        "win_rate": round(win_rate, 2),
+        "total_pnl": round(total_pnl, 2),
+        "max_open_positions": max_open,
+        "required_budget": round(required_budget, 2),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "description": f"{max_open} pozisyon aynı anda açık olabilir. Bu miktarı {current_budget}$ ile kaplamak için en az ${required_budget:,.0f} bütçe gerekli."
+    }
+
 # 7. Ayarlar Servisleri
 @app.get("/api/settings")
 async def get_settings():
