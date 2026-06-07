@@ -504,6 +504,8 @@ async def get_trading_signals():
     signals = get_signals(limit=10000)
     amount = float(config.get_setting("BACKTEST_AMOUNT", "1000"))
     
+    print(f"[DEBUG] Toplam {len(signals)} sinyal alındı")
+    
     # Tarama sonuçlarını al - live tracking için
     try:
         scanned_coins = data_fetcher.fetch_top_usdt_pairs(limit=100)
@@ -568,6 +570,7 @@ async def get_trading_signals():
             sig["pnl_pct"] = round(pnl_pct, 2)
             sig["pnl"] = round(amount * pnl_pct / 100, 2)
     
+    print(f"[DEBUG] P&L hesaplandı, total_pnl: {sum(s.get('pnl', 0) for s in signals)}")
     return signals
 
 @app.post("/api/signals/reset")
