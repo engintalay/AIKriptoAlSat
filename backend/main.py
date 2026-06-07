@@ -631,6 +631,7 @@ async def generate_signal_report():
         "win_rate": round(win_rate, 2),
         "total_pnl": round(total_pnl, 2),
         "max_open_positions": max_open,
+        "current_budget": current_budget,
         "required_budget": round(required_budget, 2),
         "avg_win": round(avg_win, 2),
         "avg_loss": round(avg_loss, 2),
